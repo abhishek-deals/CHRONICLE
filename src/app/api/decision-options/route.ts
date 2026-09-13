@@ -76,6 +76,11 @@ Format:
 
     try {
       decision = JSON.parse(content.replace(/```json/gi, '').replace(/```/g, '').trim());
+      
+      // Validate structure to prevent frontend crashes
+      if (!decision || !decision.pathA || !decision.pathB || !decision.scenario) {
+        throw new Error("Invalid AI schema returned");
+      }
     } catch (parseError) {
       console.error('Failed to parse Gemini JSON:', content);
       return NextResponse.json({ error: 'Failed to parse AI response.' }, { status: 500 });

@@ -123,21 +123,11 @@ export default function WorldMapPage() {
         )}
 
         {/* Interactive Map Area */}
-        <div className="w-full h-screen cursor-grab active:cursor-grabbing overflow-hidden" ref={mapRef}>
-          <motion.div 
-            drag
-            dragConstraints={mapRef}
-            dragElastic={0.2}
-            initial={{ scale: 1, x: 0, y: 0 }}
-            className="w-[2000px] h-[1500px] relative origin-center"
-            style={{
-              backgroundImage: 'radial-gradient(circle at center, #0a0510 0%, #000 100%)',
-            }}
-          >
+        <div className="w-full h-[calc(100vh-80px)] md:h-screen flex items-center justify-center p-4 overflow-hidden relative">
+          
+          {/* Static Map Container */}
+          <div className="w-full max-w-5xl aspect-[4/3] relative rounded-lg overflow-hidden border border-slate-800 shadow-2xl">
             
-            {/* Grid Lines for scale */}
-            <div className="absolute inset-0 opacity-10 bg-[url('/grid.png')] pointer-events-none" />
-
             {/* --- NEW CARTOON MAP BACKGROUND --- */}
             <div 
               className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -187,7 +177,7 @@ export default function WorldMapPage() {
               );
             })}
 
-          </motion.div>
+          </div>
         </div>
       </main>
     </>
