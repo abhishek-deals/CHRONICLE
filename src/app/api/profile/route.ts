@@ -47,7 +47,7 @@ export async function PATCH(request: Request) {
 
     const { error } = await supabase
       .from('profiles')
-      .update({ username: body.username })
+      .update({ username: body.username } as never)
       .eq('id', user.id);
 
     if (error) {

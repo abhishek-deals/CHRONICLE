@@ -30,7 +30,7 @@ export default function ArenaPage() {
   const [playerShake, setPlayerShake] = useState(false);
   const [bossShake, setBossShake] = useState(false);
   const [critFlash, setCritFlash] = useState(false);
-  const [damageNumbers, setDamageNumbers] = useState<{ id: number, text: string, type: 'boss' | 'player' | 'crit', x: number }[]>([]);
+  const [damageNumbers, setDamageNumbers] = useState<{ id: number, text: string, type: 'boss' | 'player' | 'crit' | 'heal', x: number }[]>([]);
 
   useEffect(() => {
     setCrtEnabled(localStorage.getItem('chronicle-crt') === 'true');

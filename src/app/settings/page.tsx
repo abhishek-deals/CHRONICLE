@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sidebar } from '@/components/Sidebar';
 import { CRTOverlay } from '@/components/CRTOverlay';
@@ -32,7 +32,7 @@ const DEFAULT_SETTINGS: UserSettings = {
 const TABS = ['Gameplay', 'Appearance', 'Audio', 'Notifications', 'Accessibility', 'Account', 'Data'];
 
 export default function SettingsPage() {
-  const { settings, setSettings, updateSettings, profile, setProfile } = useGameStore();
+  const { settings, setSettings, profile, setProfile } = useGameStore();
   const [activeTab, setActiveTab] = useState('Gameplay');
   const [isSaving, setIsSaving] = useState(false);
   const [userEmail, setUserEmail] = useState('');
@@ -41,37 +41,54 @@ export default function SettingsPage() {
   // For controlled inputs before they are saved to store
   const [localSettings, setLocalSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
 
+  const hasFetched = useRef(false);
+
   useEffect(() => {
     if (settings) {
       setLocalSettings(settings);
-    } else {
-      // Mock loading settings
-      // Fetch from API
-      fetch('/api/settings')
-        .then(res => res.json())
-        .then(data => {
-          if (data.settings) {
-            setSettings(data.settings);
-            setLocalSettings(data.settings);
-          }
-        })
-        .catch(err => console.error('Failed to load settings', err));
+      return;
     }
-  }, [settings, setSettings]);
+    if (hasFetched.current) return;
+    hasFetched.current = true;
 
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        const loaded = data.settings ?? DEFAULT_SETTINGS;
+        setSettings(loaded);
+        setLocalSettings(loaded);
+      })
+      .catch(err => console.error('Failed to load settings', err));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings]);
+
+  // Fetch email once on mount from auth provider (Gmail etc.)
   useEffect(() => {
-    if (profile) {
-      setLocalDisplayName(profile.username);
-    }
     const fetchUser = async () => {
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email) {
-        setUserEmail(user.email);
-      }
+      if (user?.email) setUserEmail(user.email);
     };
     fetchUser();
+  }, []);
+
+  // Fetch profile on mount if not already in store, so Account tab always shows name
+  useEffect(() => {
+    if (profile) {
+      setLocalDisplayName(profile.username ?? '');
+      return;
+    }
+    fetch('/api/profile')
+      .then(res => res.json())
+      .then(data => {
+        if (data.profile) {
+          setProfile(data.profile);
+          setLocalDisplayName(data.profile.username ?? '');
+        }
+      })
+      .catch(err => console.error('Failed to load profile', err));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile]);
 
   const handleSave = async () => {
@@ -95,16 +112,19 @@ export default function SettingsPage() {
         }
       }
 
-      // Save profile if display name changed
-      if (profile && localDisplayName !== profile.username) {
+      // Save display name if changed
+      const currentName = profile?.username ?? '';
+      if (localDisplayName.trim() && localDisplayName.trim() !== currentName) {
         const profileRes = await fetch('/api/profile', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: localDisplayName })
+          body: JSON.stringify({ username: localDisplayName.trim() })
         });
         const profileData = await profileRes.json();
         if (profileData.success) {
-          setProfile({ ...profile, username: profileData.username });
+          if (profile) setProfile({ ...profile, username: profileData.username });
+        } else {
+          toast.error('Failed to update display name.');
         }
       }
 
@@ -116,7 +136,7 @@ export default function SettingsPage() {
     }
   };
 
-  const updateLocal = (key: keyof UserSettings, value: any) => {
+  const updateLocal = <K extends keyof UserSettings>(key: K, value: UserSettings[K]) => {
     setLocalSettings(prev => ({ ...prev, [key]: value }));
   };
 
@@ -304,7 +324,7 @@ export default function SettingsPage() {
                             <div className="text-sm text-slate-200">{label}</div>
                             <Toggle 
                               checked={localSettings[key as keyof UserSettings] as boolean} 
-                              onChange={(v) => updateLocal(key as keyof UserSettings, v)} 
+                              onChange={(v) => updateLocal(key as keyof UserSettings, v as UserSettings[keyof UserSettings])} 
                             />
                           </div>
                         ))}
@@ -321,6 +341,7 @@ export default function SettingsPage() {
                           type="email"
                           disabled
                           value={userEmail}
+                          placeholder={userEmail ? '' : 'Loading...'}
                           className="input-field text-sm w-full sm:w-96 opacity-50 cursor-not-allowed"
                         />
                         <p className="text-xs text-slate-500 mt-1">Managed via authentication provider.</p>
@@ -369,7 +390,7 @@ export default function SettingsPage() {
                           </div>
                           <Toggle 
                             checked={localSettings[key as keyof UserSettings] as boolean} 
-                            onChange={(v) => updateLocal(key as keyof UserSettings, v)} 
+                            onChange={(v) => updateLocal(key as keyof UserSettings, v as UserSettings[keyof UserSettings])} 
                           />
                         </div>
                       ))}
@@ -391,7 +412,7 @@ export default function SettingsPage() {
                             </div>
                             <Toggle 
                               checked={localSettings[key as keyof UserSettings] as boolean} 
-                              onChange={(v) => updateLocal(key as keyof UserSettings, v)} 
+                              onChange={(v) => updateLocal(key as keyof UserSettings, v as UserSettings[keyof UserSettings])} 
                             />
                           </div>
                         ))}
