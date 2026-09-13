@@ -1,8 +1,23 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@/lib/supabase/server';
 
-
+const HARDCODED_QUESTS = [
+  { title: "Read 10 pages of a non-fiction book", category: "Learning", difficulty: "Easy", attribute_tag: "intellect", reason: "Expanding knowledge requires daily discipline." },
+  { title: "Complete a 30-minute cardio workout", category: "Fitness", difficulty: "Medium", attribute_tag: "strength", reason: "Endurance is forged in sweat." },
+  { title: "Drink 2 liters of water today", category: "Health", difficulty: "Easy", attribute_tag: "discipline", reason: "Hydration is the foundation of energy." },
+  { title: "Spend 20 minutes sketching or writing", category: "Art", difficulty: "Medium", attribute_tag: "creativity", reason: "The mind needs a canvas to explore." },
+  { title: "Code for 1 hour without distractions", category: "Career", difficulty: "Hard", attribute_tag: "intellect", reason: "Deep focus sharpens your intellect." },
+  { title: "Do 50 push-ups total today", category: "Fitness", difficulty: "Medium", attribute_tag: "strength", reason: "Physical strength translates to mental fortitude." },
+  { title: "Meditate for 10 minutes", category: "Mindfulness", difficulty: "Easy", attribute_tag: "discipline", reason: "A calm mind is an impenetrable fortress." },
+  { title: "Brainstorm 5 new ideas for a project", category: "Planning", difficulty: "Medium", attribute_tag: "creativity", reason: "Innovation requires intentional thought." },
+  { title: "Learn a new vocabulary word and use it", category: "Learning", difficulty: "Easy", attribute_tag: "intellect", reason: "Words are the building blocks of understanding." },
+  { title: "Stretch or do yoga for 15 minutes", category: "Health", difficulty: "Easy", attribute_tag: "strength", reason: "Flexibility prevents future injuries." },
+  { title: "Clean your workspace completely", category: "Habits", difficulty: "Medium", attribute_tag: "discipline", reason: "A clear environment breeds a clear mind." },
+  { title: "Cook a new healthy recipe", category: "Life", difficulty: "Hard", attribute_tag: "creativity", reason: "Culinary exploration nourishes the body and soul." },
+  { title: "Watch a documentary on a new topic", category: "Learning", difficulty: "Medium", attribute_tag: "intellect", reason: "Curiosity is the engine of intellect." },
+  { title: "Go for a brisk 45-minute walk", category: "Fitness", difficulty: "Medium", attribute_tag: "strength", reason: "Movement is the essence of life." },
+  { title: "No social media for the first 2 hours awake", category: "Habits", difficulty: "Hard", attribute_tag: "discipline", reason: "Reclaiming your attention is the ultimate power." }
+];
 
 export async function POST(request: Request) {
   try {
@@ -14,112 +29,55 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const userMessages = body.messages || [];
 
-    // Fetch user's current attributes from DB — NEVER trust client-sent values
-    const { data: attrsRaw, error: attrError } = await supabase
+    // Fetch user's current attributes from DB
+    const { data: attrsRaw } = await supabase
       .from('attributes')
       .select('*')
       .eq('user_id', user.id)
       .single();
 
-    if (attrError || !attrsRaw) {
-      return NextResponse.json({ error: 'Failed to fetch user attributes.' }, { status: 500 });
-    }
-
-    const attrs = attrsRaw as { intellect: number; strength: number; discipline: number; creativity: number };
-
-    // Find weakest attribute
-    const attrValues = {
-      intellect: attrs.intellect,
-      strength: attrs.strength,
-      discipline: attrs.discipline,
-      creativity: attrs.creativity,
-    };
+    const attrs = attrsRaw || { intellect: 0, strength: 0, discipline: 0, creativity: 0 };
+    const attrValues = { intellect: attrs.intellect, strength: attrs.strength, discipline: attrs.discipline, creativity: attrs.creativity };
     const weakest = Object.entries(attrValues).sort((a, b) => a[1] - b[1])[0][0];
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
-      return NextResponse.json({ error: 'AI API Key is missing or invalid. Please configure your GEMINI_API_KEY.' }, { status: 500 });
-    }
+    // Shuffle and pick 3 quests
+    const shuffled = [...HARDCODED_QUESTS].sort(() => 0.5 - Math.random());
+    const selectedQuests = shuffled.slice(0, 3);
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-
-    const systemPrompt = `You are the Sage, an ancient AI mentor in a life RPG called Chronicle.
-A player's attributes are:
-- Intellect: ${attrs.intellect as number} XP
-- Strength: ${attrs.strength as number} XP  
-- Discipline: ${attrs.discipline as number} XP
-- Creativity: ${attrs.creativity as number} XP
-
-Their weakest attribute is: ${weakest}
-
-Speak in a warm, slightly archaic fantasy tone. Answer the user's query or provide a short 2-3 sentence introductory message (prose) addressing the adventurer and encouraging them.
-Then, if the user is asking for quests or if it's the start of the conversation, suggest exactly 3 real-life quests (tasks) that would help them improve, especially the ${weakest} attribute.
-
-Respond EXACTLY in this format with the exact delimiters:
-
-PROSE:
-[Your intro message or answer here]
+    // Format the response exactly as the frontend expects
+    const responseText = `PROSE:
+Greetings, adventurer. I sense your ${weakest} is currently your weakest link. Fear not, for I have peered into the cosmic weave and found three tasks tailored to forge you into a stronger warrior of life. Accept these trials, and grow.
 
 QUESTS:
-[
-  {
-    "title": "Quest title (max 60 chars)",
-    "category": "Learning",
-    "difficulty": "Easy",
-    "attribute_tag": "intellect",
-    "reason": "One sentence reason"
-  }
-]
-If you have no quests to suggest, return an empty array [] for QUESTS.`;
+${JSON.stringify(selectedQuests, null, 2)}`;
 
-    const history = userMessages.map((m: any) => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.content }]
-    }));
-
-    try {
-      const model = genAI.getGenerativeModel({ 
-        model: 'gemini-2.5-flash',
-        systemInstruction: systemPrompt
-      });
-
-      const chat = model.startChat({
-        history: history.length > 1 ? history.slice(0, -1) : []
-      });
-      
-      const lastMessage = history.length > 0 ? history[history.length - 1].parts[0].text : 'Suggest 3 quests for me.';
-
-      const result = await chat.sendMessageStream(lastMessage);
-
-      const { readable, writable } = new TransformStream();
-      const writer = writable.getWriter();
-      
-      // Process stream asynchronously without blocking
-      (async () => {
-        try {
-          for await (const chunk of result.stream) {
-            writer.write(new TextEncoder().encode(chunk.text()));
-          }
-        } catch (err) {
-          writer.abort(err);
-        } finally {
-          writer.close();
+    // Fake a readable stream
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
+    
+    (async () => {
+      try {
+        // Stream it in small chunks to simulate AI typing
+        const chunks = responseText.split(/(?<=\s)/);
+        for (const chunk of chunks) {
+          writer.write(new TextEncoder().encode(chunk));
+          await new Promise(resolve => setTimeout(resolve, 10)); // 10ms delay per word
         }
-      })();
+      } catch (err) {
+        writer.abort(err);
+      } finally {
+        writer.close();
+      }
+    })();
 
-      return new NextResponse(readable, {
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Cache-Control': 'no-cache, no-transform',
-        },
-      });
+    return new NextResponse(readable, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+      },
+    });
 
-    } catch (aiErr) {
-      console.error('Gemini API error:', aiErr);
-      return NextResponse.json({ error: 'Failed to generate quests' }, { status: 500 });
-    }
   } catch (err) {
     console.error('POST /api/ai/suggest-quests error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
