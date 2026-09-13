@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sidebar } from '@/components/Sidebar';
 import { CRTOverlay } from '@/components/CRTOverlay';
 import { useGameStore } from '@/store/game';
 import { toast } from 'sonner';
+import { ParticleBurst } from '@/components/ParticleBurst';
 
 const CATEGORIES = ['Career', 'Study', 'Fitness', 'Personal', 'Creativity', 'Finance', 'Health', 'Social', 'Other'];
 const DIFFICULTIES = ['Casual', 'Balanced', 'Challenging'];
@@ -22,6 +23,8 @@ export default function CampaignsPage() {
   const [difficulty, setDifficulty] = useState(DIFFICULTIES[1]);
   const [duration, setDuration] = useState(30);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [activeShakeId, setActiveShakeId] = useState<string | null>(null);
+  const [burstPos, setBurstPos] = useState<{x: number, y: number} | null>(null);
 
   useEffect(() => {
     setCrtEnabled(localStorage.getItem('chronicle-crt') === 'true');
@@ -106,6 +109,9 @@ export default function CampaignsPage() {
       if (data.success) {
         toast.success(`+${data.xp_gained} XP • +${data.gold_gained} Gold!`, { icon: '⚔️' });
         
+        // Trigger epic effects!
+        setActiveShakeId(campaignId);
+        
         // Optimistically update UI
         setCampaigns(campaigns.map(c => {
           if (c.id === campaignId) {
@@ -124,6 +130,8 @@ export default function CampaignsPage() {
         if (data.campaign_completed) {
           toast.success('Campaign Conquered!', { icon: '🏆' });
         }
+        
+        setTimeout(() => setActiveShakeId(null), 800);
       }
     } catch (err) {
       toast.error('Network error');
@@ -307,13 +315,47 @@ export default function CampaignsPage() {
                     const completedChapters = campaign.chapters.filter(c => c.completed).length;
                     const totalChapters = campaign.chapters.length;
                     const progressPct = totalChapters === 0 ? 0 : Math.round((completedChapters / totalChapters) * 100);
+                    const isFullyConquered = progressPct === 100;
+                    const isShaking = activeShakeId === campaign.id;
 
                     return (
-                      <div key={campaign.id} className="glass-card pixel-border rounded-xl overflow-hidden">
-                        <div className="p-6 border-b border-purple-900/30">
+                      <motion.div 
+                        key={campaign.id} 
+                        layout
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ 
+                          opacity: 1, 
+                          y: 0,
+                          x: isShaking ? [-10, 10, -10, 10, 0] : 0 
+                        }}
+                        transition={{ 
+                          x: { duration: 0.4 },
+                          layout: { duration: 0.3 }
+                        }}
+                        className={`relative rounded-xl overflow-hidden ${isFullyConquered ? 'opacity-70 grayscale border border-slate-700' : 'glass-card pixel-border'}`}
+                      >
+                        {/* The Fortress Visual Backdrop */}
+                        {!isFullyConquered && (
+                          <div className="absolute inset-0 z-0 opacity-20 pointer-events-none" style={{
+                            backgroundImage: 'radial-gradient(circle at 50% -20%, rgba(139, 92, 246, 0.4), transparent 70%)'
+                          }}>
+                            {/* Represents the gates/fortress breaking down */}
+                            <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/80 to-transparent" />
+                            {completedChapters > 0 && (
+                               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cracked-earth.png')] opacity-30 mix-blend-overlay" />
+                            )}
+                            {completedChapters > 1 && (
+                               <div className="absolute inset-0 bg-red-900/20 mix-blend-color-burn" />
+                            )}
+                          </div>
+                        )}
+
+                        <div className="relative z-10 p-6 border-b border-purple-900/30">
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex items-center gap-3">
-                              <h2 className="font-game text-lg text-white">{campaign.title}</h2>
+                              <h2 className={`font-game text-xl ${isFullyConquered ? 'text-slate-400 line-through' : 'text-white glow-purple'}`}>
+                                {isFullyConquered ? 'CONQUERED: ' : 'FORTRESS: '}{campaign.title}
+                              </h2>
                               <button
                                 onClick={() => handleDeleteCampaign(campaign.id)}
                                 className="text-slate-500 hover:text-red-400 transition-colors text-sm"
@@ -322,46 +364,65 @@ export default function CampaignsPage() {
                                 🗑️
                               </button>
                             </div>
-                            <span className="text-xs px-2 py-1 rounded bg-purple-900/50 text-purple-300 font-game">
-                              {campaign.category.toUpperCase()}
+                            <span className="text-[10px] px-2 py-1 rounded bg-purple-900/50 text-purple-300 font-game border border-purple-700/50">
+                              {campaign.category.toUpperCase()} • {campaign.difficulty.toUpperCase()}
                             </span>
                           </div>
-                          <p className="text-slate-400 text-sm mb-4">{campaign.description}</p>
+                          <p className={`text-sm mb-4 ${isFullyConquered ? 'text-slate-500' : 'text-slate-300'}`}>
+                            {campaign.description}
+                          </p>
                           
-                          <div className="flex items-center gap-4 text-xs font-game text-slate-500 mb-2">
-                            <span>{progressPct}% COMPLETE</span>
+                          <div className="flex items-center justify-between text-[10px] font-game text-slate-400 mb-2">
+                            <span className={isFullyConquered ? 'text-emerald-400' : 'text-purple-400'}>
+                              {isFullyConquered ? 'VICTORY SECURED' : 'BREACHING GATES...'}
+                            </span>
                             <span>CHAPTER {Math.min(completedChapters + 1, totalChapters)} / {totalChapters}</span>
                           </div>
-                          <div className="attr-bar-track h-2">
-                            <div 
-                              className="attr-bar-fill bg-purple-500" 
-                              style={{ width: `${progressPct}%` }}
+                          
+                          {/* Progress bar styled as a glowing breach meter */}
+                          <div className="h-3 bg-black/60 rounded-full border border-slate-700/50 overflow-hidden">
+                            <motion.div 
+                              className={`h-full ${isFullyConquered ? 'bg-emerald-500' : 'bg-gradient-to-r from-purple-700 to-fuchsia-500'}`}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${progressPct}%` }}
+                              transition={{ duration: 0.8, ease: "easeOut" }}
+                              style={{ 
+                                boxShadow: isFullyConquered ? '0 0 10px rgba(16, 185, 129, 0.5)' : '0 0 10px rgba(168, 85, 247, 0.5)' 
+                              }}
                             />
                           </div>
                         </div>
                         
-                        <div className="p-6 bg-black/20">
-                          <h3 className="font-game text-xs text-purple-400 mb-4">CHAPTERS</h3>
-                          <div className="space-y-3">
+                        <div className="relative z-10 p-6 bg-black/40">
+                          <h3 className="font-game text-xs text-purple-500/70 mb-4 tracking-widest">CHAPTERS OF CONQUEST</h3>
+                          <div className="space-y-4">
                             {campaign.chapters.map((chapter, idx) => {
                               const isActive = idx === completedChapters;
+                              const isPast = idx < completedChapters;
+                              
                               return (
-                                <div key={chapter.id} className="flex items-start gap-3">
-                                  <div className={`mt-0.5 text-sm ${chapter.completed ? 'text-emerald-400' : (isActive ? 'text-purple-400' : 'text-slate-600')}`}>
-                                    {chapter.completed ? '✓' : (isActive ? '●' : '○')}
+                                <div key={chapter.id} className={`flex items-start gap-4 p-3 rounded-lg border ${isPast ? 'bg-black/30 border-emerald-900/30' : (isActive ? 'bg-purple-900/20 border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.15)]' : 'bg-black/20 border-transparent opacity-60')}`}>
+                                  <div className={`mt-0.5 text-lg ${isPast ? 'text-emerald-500' : (isActive ? 'text-purple-400 drop-shadow-[0_0_5px_rgba(168,85,247,0.8)]' : 'text-slate-600')}`}>
+                                    {isPast ? '⚔️' : (isActive ? '🔥' : '🔒')}
                                   </div>
                                   <div className="flex-1">
-                                    <div className={`font-game text-sm ${chapter.completed ? 'text-slate-300' : (isActive ? 'text-white' : 'text-slate-500')}`}>
+                                    <div className={`font-game text-sm mb-1 ${isPast ? 'text-emerald-400 line-through opacity-70' : (isActive ? 'text-white' : 'text-slate-500')}`}>
                                       {chapter.title}
                                     </div>
-                                    <div className="text-xs text-slate-500 mb-2">{chapter.description}</div>
+                                    <div className={`text-xs whitespace-pre-wrap leading-relaxed ${isPast ? 'text-slate-600' : (isActive ? 'text-slate-300' : 'text-slate-500')}`}>
+                                      {chapter.description}
+                                    </div>
                                     
                                     {isActive && campaign.status !== 'completed' && (
                                       <button 
-                                        onClick={() => handleCompleteChapter(campaign.id, chapter.id)}
-                                        className="btn-success text-xs py-1.5 px-4 inline-flex items-center gap-2"
+                                        onClick={(e) => {
+                                           const rect = e.currentTarget.getBoundingClientRect();
+                                           setBurstPos({ x: rect.left + rect.width/2, y: rect.top + rect.height/2 });
+                                           handleCompleteChapter(campaign.id, chapter.id);
+                                        }}
+                                        className="mt-3 btn-success text-[10px] py-1.5 px-4 font-game"
                                       >
-                                        COMPLETE CHAPTER ✓
+                                        CONQUER STAGE ✓
                                       </button>
                                     )}
                                   </div>
@@ -370,14 +431,16 @@ export default function CampaignsPage() {
                             })}
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     );
                   })
                 )}
               </motion.div>
             )}
           </AnimatePresence>
-
+          {burstPos && (
+             <ParticleBurst x={burstPos.x} y={burstPos.y} onComplete={() => setBurstPos(null)} />
+          )}
         </div>
       </main>
     </>

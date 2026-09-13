@@ -35,14 +35,15 @@ Your task is to break this real-life goal down into exactly 3 epic RPG chapters 
 - Chapter 2 should be about facing challenges/consistency.
 - Chapter 3 should be about mastering the goal and final triumph.
 
-Make the titles sound epic and fantasy-themed, but the descriptions should clearly relate to the real-life goal.
+Make the titles sound epic and fantasy-themed.
+CRITICAL: The descriptions MUST be highly detailed and personalized to the specific goal ("${goal}"). Do not use generic text. For each chapter's description, include a 3-step action plan of exactly what the user must do in real life during this stage.
 
 Respond ONLY with a valid JSON array of exactly 3 objects. Do not include any markdown formatting, backticks, or prose outside the JSON.
 Format:
 [
   {
     "title": "Epic Title",
-    "description": "Short description of what the player must do."
+    "description": "Highly detailed lore description followed by 3 specific actionable tasks: 1. ... 2. ... 3. ..."
   }
 ]
 `;

@@ -135,7 +135,7 @@ interface GameState {
 
   // Apply server authoritative state after complete
   applyCompleteResult: (taskId: string, result: CompleteResult) => void;
-  applyUndoResult: (taskId: string, result: any) => void;
+  applyUndoResult: (taskId: string, result: Partial<CompleteResult> & { profile?: Profile }) => void;
 
   // Add new task optimistically
   addTask: (task: Task) => void;

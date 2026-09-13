@@ -40,7 +40,7 @@ export function QuestCard({ task, onCompleted, onDeleted }: Props) {
   const reward = QUEST_REWARDS[task.difficulty as keyof typeof QUEST_REWARDS];
 
   const handleComplete = useCallback(
-    async (e: React.MouseEvent | React.KeyboardEvent) => {
+    async () => {
       if (completing || isCompleted) return;
       setCompleting(true);
 
@@ -172,7 +172,7 @@ export function QuestCard({ task, onCompleted, onDeleted }: Props) {
   const handleKeyComplete = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      handleComplete(e);
+      handleComplete();
     }
   };
 
