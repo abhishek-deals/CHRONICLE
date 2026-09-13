@@ -81,15 +81,25 @@ export default function ArenaPage() {
         });
       }
 
-      if (lastCombatResult.counter_damage && lastCombatResult.counter_damage > 0) {
-        setPlayerShake(true);
-        setTimeout(() => setPlayerShake(false), 500);
-        newDmgNumbers.push({
-          id: id + 2,
-          text: `-${lastCombatResult.counter_damage}`,
-          type: 'player',
-          x: Math.random() * 100 - 50
-        });
+      if (lastCombatResult.counter_damage) {
+        if (lastCombatResult.counter_damage > 0) {
+          setPlayerShake(true);
+          setTimeout(() => setPlayerShake(false), 500);
+          newDmgNumbers.push({
+            id: id + 2,
+            text: `-${lastCombatResult.counter_damage}`,
+            type: 'player',
+            x: Math.random() * 100 - 50
+          });
+        } else if (lastCombatResult.counter_damage < 0) {
+          // Negative counter_damage means heal!
+          newDmgNumbers.push({
+            id: id + 2,
+            text: `+${Math.abs(lastCombatResult.counter_damage)}`,
+            type: 'heal',
+            x: Math.random() * 100 - 50
+          });
+        }
       }
 
       setDamageNumbers((prev) => [...prev, ...newDmgNumbers]);
@@ -170,7 +180,11 @@ export default function ArenaPage() {
                       animate={{ opacity: [0, 1, 0], y: -100, scale: dmg.type === 'crit' ? 1.5 : 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 1.2, ease: "easeOut" }}
-                      className={`absolute font-game text-4xl ${dmg.type === 'player' ? 'text-red-500 left-1/4' : 'text-yellow-400 right-1/4'} top-1/2 -translate-y-1/2`}
+                      className={`absolute font-game text-4xl ${
+                        dmg.type === 'player' ? 'text-red-500 left-1/4' : 
+                        dmg.type === 'heal' ? 'text-green-400 left-1/4' : 
+                        'text-yellow-400 right-1/4'
+                      } top-1/2 -translate-y-1/2`}
                       style={{ x: dmg.x, textShadow: '2px 2px 0 #000' }}
                     >
                       {dmg.type === 'crit' && <div className="text-sm text-yellow-200 mb-1">CRITICAL!</div>}

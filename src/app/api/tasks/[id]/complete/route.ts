@@ -97,6 +97,38 @@ export async function PATCH(
       boss_defeated: data.level_up ? true : (data.current_hp === 0 && data.boss_damage > 0), // Simple heuristic for defeated
     };
 
+    // --- OPTION C: HEAL LOGIC ---
+    // Instead of taking counter-damage, completing a quest heals the user!
+    // The RPC already deducted counter_damage. We reverse it and add 20 HP heal.
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: currentProfile, error: profileErr } = await (supabase as any)
+        .from('profiles')
+        .select('current_hp, max_hp')
+        .eq('id', user.id)
+        .single();
+
+      if (!profileErr && currentProfile && currentProfile.current_hp !== undefined) {
+        // Reverse counter damage and add 20 heal
+        const healAmount = 20;
+        const newHp = Math.min(currentProfile.max_hp || 100, (currentProfile.current_hp || 0) + (data.counter_damage || 0) + healAmount);
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any)
+          .from('profiles')
+          .update({ 
+            current_hp: newHp,
+            knockout_until: null // Revive if they were knocked out by the RPC
+          })
+          .eq('id', user.id);
+          
+        finalResult.current_hp = newHp;
+        finalResult.counter_damage = -healAmount; // Negative counter damage = heal
+      }
+    } catch (e) {
+      console.warn('Could not apply heal logic, skipping:', e);
+    }
+
     return NextResponse.json({ result: finalResult });
   } catch (err) {
     console.error('PATCH /api/tasks/[id]/complete error:', err);
