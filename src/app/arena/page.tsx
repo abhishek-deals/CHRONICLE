@@ -3,286 +3,379 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { useGameStore, Profile } from '@/store/game';
 import { CRTOverlay } from '@/components/CRTOverlay';
 import { Sidebar } from '@/components/Sidebar';
-import { useGameStore } from '@/store/game';
 
-interface PathDecision {
-  title: string;
-  description: string;
-  projected_xp: number;
-  projected_hp_change: number;
-  difficulty: string;
-}
-
-interface Crossroads {
-  scenario: string;
-  pathA: PathDecision;
-  pathB: PathDecision;
+interface Boss {
+  id: string;
+  name: string;
+  current_hp: number;
+  max_hp: number;
+  status: 'active' | 'defeated';
+  tier: number;
+  atk: number;
+  def: number;
+  signature_move: string | null;
 }
 
 export default function ArenaPage() {
-  const [crtEnabled, setCrtEnabled] = useState(false);
-  const [crossroads, setCrossroads] = useState<Crossroads | null>(null);
+  const { lastCombatResult } = useGameStore();
+  const [boss, setBoss] = useState<Boss | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [alreadyDecided, setAlreadyDecided] = useState(false);
-  const [hoveredPath, setHoveredPath] = useState<'A' | 'B' | null>(null);
-  const [isCommitting, setIsCommitting] = useState(false);
-  const profile = useGameStore((s) => s.profile);
-  const fetchProfile = useGameStore((s) => s.fetchProfile);
+  const [crtEnabled, setCrtEnabled] = useState(false);
+
+  // Animation triggers
+  const [playerShake, setPlayerShake] = useState(false);
+  const [bossShake, setBossShake] = useState(false);
+  const [critFlash, setCritFlash] = useState(false);
+  const [damageNumbers, setDamageNumbers] = useState<{ id: number, text: string, type: 'boss' | 'player' | 'crit' | 'heal', x: number }[]>([]);
 
   useEffect(() => {
     setCrtEnabled(localStorage.getItem('chronicle-crt') === 'true');
-    fetchProfile();
-    fetchOptions();
-  }, [fetchProfile]);
-
-  const fetchOptions = async () => {
-    try {
-      const res = await fetch('/api/decision-options');
-      const data = await res.json();
-      
-      if (data.alreadyDecided) {
-        setAlreadyDecided(true);
-      } else if (data.decision) {
-        setCrossroads(data.decision);
-      } else if (data.error) {
-        toast.error(data.error);
-      }
-    } catch (err) {
-      toast.error('Failed to fetch the daily crossroads.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCommit = async (path: PathDecision, pathId: 'A' | 'B') => {
-    setIsCommitting(true);
-    setHoveredPath(pathId); // Lock the hover effect
-    
-    try {
-      const res = await fetch('/api/decision', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(path),
-      });
-      
-      const data = await res.json();
-      if (data.success) {
-        toast.success(`Choice locked! ${data.xp_gained} XP awarded.`, { icon: '⚡' });
-        if (data.level_up) {
-          toast.success(`LEVEL UP! You are now Level ${data.new_level}`, { icon: '⭐' });
+    async function fetchArenaData() {
+      try {
+        const res = await fetch('/api/arena');
+        if (res.ok) {
+          const data = await res.json();
+          setBoss(data.boss);
+          setProfile(data.profile);
         }
-        await fetchProfile(); // Refresh profile state in game store
-        setTimeout(() => {
-          setAlreadyDecided(true);
-        }, 1500);
-      } else {
-        toast.error(data.error || 'Failed to commit decision.');
-        setIsCommitting(false);
+      } catch (err) {
+        toast.error('Failed to summon arena data');
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      toast.error('Network error.');
-      setIsCommitting(false);
     }
-  };
+    fetchArenaData();
+  }, []);
+
+  // Watch lastCombatResult for animations and state updates
+  useEffect(() => {
+    if (lastCombatResult) {
+      if (boss) {
+        setBoss((prev) => prev ? { ...prev, current_hp: Math.max(0, prev.current_hp - (lastCombatResult.boss_damage || 0)) } : null);
+      }
+      if (profile) {
+        setProfile((prev) => prev ? { ...prev, current_hp: lastCombatResult.current_hp ?? prev.current_hp, combo_multiplier: lastCombatResult.combo_multiplier ?? prev.combo_multiplier } : null);
+      }
+
+      // Trigger animations
+      const newDmgNumbers: typeof damageNumbers = [];
+      const id = Date.now();
+
+      if (lastCombatResult.is_crit) {
+        setCritFlash(true);
+        setTimeout(() => setCritFlash(false), 200);
+      }
+
+      if (lastCombatResult.boss_damage && lastCombatResult.boss_damage > 0) {
+        setBossShake(true);
+        setTimeout(() => setBossShake(false), 500);
+        newDmgNumbers.push({
+          id: id + 1,
+          text: `-${lastCombatResult.boss_damage}`,
+          type: lastCombatResult.is_crit ? 'crit' : 'boss',
+          x: Math.random() * 100 - 50
+        });
+      }
+
+      if (lastCombatResult.counter_damage) {
+        if (lastCombatResult.counter_damage > 0) {
+          setPlayerShake(true);
+          setTimeout(() => setPlayerShake(false), 500);
+          newDmgNumbers.push({
+            id: id + 2,
+            text: `-${lastCombatResult.counter_damage}`,
+            type: 'player',
+            x: Math.random() * 100 - 50
+          });
+        } else if (lastCombatResult.counter_damage < 0) {
+          // Negative counter_damage means heal!
+          newDmgNumbers.push({
+            id: id + 2,
+            text: `+${Math.abs(lastCombatResult.counter_damage)}`,
+            type: 'heal',
+            x: Math.random() * 100 - 50
+          });
+        }
+      }
+
+      setDamageNumbers((prev) => [...prev, ...newDmgNumbers]);
+      setTimeout(() => {
+        setDamageNumbers((prev) => prev.filter(d => d.id !== id + 1 && d.id !== id + 2));
+      }, 1500);
+    }
+  }, [lastCombatResult]);
 
   if (loading) {
     return (
       <>
         <CRTOverlay enabled={crtEnabled} />
         <Sidebar />
-        <div className="fixed inset-0 z-0 pointer-events-none" style={{ backgroundImage: 'url(/doom-bg-2.jpg)', backgroundSize: 'cover' }} />
-        <main className="pb-20 md:pb-0 md:pl-64 min-h-screen flex items-center justify-center relative z-10">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="font-game text-purple-400">THE ORACLE IS PONDERING YOUR FATE...</p>
-          </div>
-        </main>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <CRTOverlay enabled={crtEnabled} />
-      <Sidebar />
-      
-      {/* Dynamic Background based on hover */}
-      <motion.div
-        className="fixed inset-0 z-0 pointer-events-none transition-colors duration-1000"
-        animate={{
-          backgroundColor: hoveredPath === 'A' ? 'rgba(59, 130, 246, 0.15)' : hoveredPath === 'B' ? 'rgba(220, 38, 38, 0.15)' : 'rgba(5, 2, 17, 1)',
-        }}
+        
+      {/* Doctor Doom Background */}
+      <div
+        className="fixed inset-0 z-0 pointer-events-none"
         style={{
           backgroundImage: 'url(/doom-bg-2.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center center',
           backgroundRepeat: 'no-repeat',
           backgroundAttachment: 'fixed',
-          backgroundBlendMode: 'overlay'
         }}
       >
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0,0,0,0.8) 100%)' }} />
-      </motion.div>
+        {/* Very light overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'linear-gradient(180deg, rgba(5,2,17,0.35) 0%, rgba(5,2,17,0.25) 50%, rgba(5,2,17,0.40) 100%)',
+          }}
+        />
+        {/* Subtle green edge vignette */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0,20,10,0.55) 100%)',
+          }}
+        />
+      </div>
 
-      <main className="pb-20 md:pb-0 md:pl-64 min-h-screen relative z-10 flex flex-col justify-center py-8">
-        <div className="max-w-6xl mx-auto px-4 w-full">
-          
-          <div className="text-center mb-12">
-            <h1 className="font-game text-4xl text-white glow-purple mb-4">THE DECISION ARENA</h1>
-            <p className="text-slate-400 text-sm max-w-2xl mx-auto">
-              {alreadyDecided 
-                ? "Your fate for today is sealed. Return tomorrow." 
-                : "Every day presents a crossroads. The path you choose defines who you become."}
-            </p>
+      <main className="pb-20 md:pb-0 md:pl-64 min-h-screen flex items-center justify-center relative z-10">
+          <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+        </main>
+      </>
+    );
+  }
+
+  const isDefeated = boss?.status === 'defeated' || (boss && boss.current_hp <= 0);
+  const isKnockedOut = profile && profile.current_hp <= 0;
+
+  const bossHpPercent = boss ? Math.max(0, (boss.current_hp / boss.max_hp) * 100) : 0;
+  const playerHpPercent = profile ? Math.max(0, (profile.current_hp / (profile.max_hp || 100)) * 100) : 0;
+
+  return (
+    <>
+      <CRTOverlay enabled={crtEnabled} />
+      <Sidebar />
+
+      <main className="pb-20 md:pb-0 md:pl-64 min-h-screen">
+        
+        {/* CRIT FLASH OVERLAY */}
+        <AnimatePresence>
+          {critFlash && (
+            <motion.div 
+              initial={{ opacity: 0.8 }}
+              animate={{ opacity: 0 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-yellow-400 z-50 pointer-events-none mix-blend-overlay"
+            />
+          )}
+        </AnimatePresence>
+
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="font-game text-4xl text-purple-400 glow-purple mb-2">THE ARENA</h1>
+            <p className="text-slate-400 text-sm">Face the Weekly Nemesis. Complete quests to strike.</p>
           </div>
 
-          {alreadyDecided ? (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="glass-card pixel-border p-12 text-center max-w-2xl mx-auto"
-            >
-              <div className="text-6xl mb-6" aria-hidden="true">⚔️</div>
-              <h2 className="font-game text-2xl text-purple-400 mb-4">DECISION MADE</h2>
-              <p className="text-slate-400">
-                You have faced the crossroads and made your choice. The universe is now in motion.
-                Return tomorrow for your next trial.
-              </p>
-            </motion.div>
-          ) : crossroads ? (
-            <div className="relative">
-              
-              {/* Context Scenario */}
-              <motion.div 
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center mb-10 p-6 bg-black/40 border border-slate-800 rounded-lg max-w-3xl mx-auto"
-              >
-                <p className="text-slate-300 italic text-lg leading-relaxed">"{crossroads.scenario}"</p>
-              </motion.div>
+          {/* KNOCKOUT STATE */}
+          {isKnockedOut && (
+            <div className="glass-card border-red-500/50 bg-red-900/20 p-8 rounded-xl text-center mb-8 relative overflow-hidden">
+              <div className="absolute inset-0 bg-red-900/20 animate-pulse pointer-events-none" />
+              <h2 className="font-game text-4xl text-red-500 mb-2 tracking-widest">KNOCKED OUT</h2>
+              <p className="text-red-200">Your health has reached 0. You must rest to recover before fighting again.</p>
+            </div>
+          )}
 
-              <div className="flex flex-col md:flex-row gap-8 items-stretch justify-center relative">
+          {!boss && !isKnockedOut && (
+            <div className="glass-card p-12 text-center rounded-xl">
+              <h2 className="font-game text-xl text-slate-400">NO ACTIVE THREATS</h2>
+              <p className="text-slate-500 mt-2">The arena is quiet... for now.</p>
+            </div>
+          )}
+
+          {boss && (
+            <div className={`relative bg-black/60 border ${isKnockedOut ? 'border-red-900/50' : 'border-slate-800'} rounded-2xl overflow-hidden min-h-[500px] p-6 lg:p-12`}>
+              {/* Background FX */}
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/10 via-black to-black opacity-60 pointer-events-none" />
+              
+              {/* Damage Numbers Overlay */}
+              <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
+                <AnimatePresence>
+                  {damageNumbers.map(dmg => (
+                    <motion.div
+                      key={dmg.id}
+                      initial={{ opacity: 0, y: 0, scale: 0.5 }}
+                      animate={{ opacity: [0, 1, 0], y: -100, scale: dmg.type === 'crit' ? 1.5 : 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 1.2, ease: "easeOut" }}
+                      className={`absolute font-game text-4xl ${
+                        dmg.type === 'player' ? 'text-red-500 left-1/4' : 
+                        dmg.type === 'heal' ? 'text-green-400 left-1/4' : 
+                        'text-yellow-400 right-1/4'
+                      } top-1/2 -translate-y-1/2`}
+                      style={{ x: dmg.x, textShadow: '2px 2px 0 #000' }}
+                    >
+                      {dmg.type === 'crit' && <div className="text-sm text-yellow-200 mb-1">CRITICAL!</div>}
+                      {dmg.text}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+
+              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between h-full gap-12">
                 
-                {/* VS Glowing Divider */}
-                <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 flex-col items-center pointer-events-none">
-                  <div className="w-px h-32 bg-gradient-to-b from-transparent via-purple-500 to-transparent" />
-                  <div className="bg-black border border-purple-500 rounded-full w-12 h-12 flex items-center justify-center font-game text-purple-400 glow-purple z-10 shadow-[0_0_20px_#a855f7]">
-                    VS
+                {/* --- PLAYER SIDE (LEFT) --- */}
+                <div className="w-full md:w-5/12 flex flex-col items-center">
+                  <div className="w-full mb-6">
+                    <div className="flex justify-between items-end mb-2">
+                      <h2 className="font-game text-xl text-blue-400">{profile?.username || 'Hero'}</h2>
+                      <span className="font-mono text-sm text-blue-400 font-bold">{profile?.current_hp || 0} / {profile?.max_hp || 100} BLUE POWER</span>
+                    </div>
+                    <div className="w-full h-6 bg-slate-900 rounded-sm border-2 border-slate-700 p-0.5 relative overflow-hidden">
+                      <motion.div 
+                        className="h-full bg-blue-500 rounded-sm"
+                        initial={{ width: `${playerHpPercent}%` }}
+                        animate={{ width: `${playerHpPercent}%` }}
+                        transition={{ duration: 0.5, type: "spring" }}
+                      />
+                      <div className="absolute inset-0 bg-[url('/grid.png')] opacity-20 pointer-events-none" />
+                    </div>
                   </div>
-                  <div className="w-px h-32 bg-gradient-to-t from-transparent via-purple-500 to-transparent" />
+
+                  <motion.div
+                    animate={playerShake ? { x: [-10, 10, -10, 10, 0], filter: ['brightness(1) hue-rotate(0deg)', 'brightness(2) hue-rotate(-50deg)', 'brightness(1) hue-rotate(0deg)'] } : {}}
+                    transition={{ duration: 0.4 }}
+                    className="relative"
+                  >
+                    <div className="w-48 h-48 bg-slate-800 mask-image-monster flex items-center justify-center opacity-80"
+                      style={{ clipPath: 'polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%)', boxShadow: 'inset 0 0 50px rgba(59,130,246,0.2)' }}
+                    >
+                      <div className="text-6xl" aria-hidden="true">🛡️</div>
+                    </div>
+                  </motion.div>
+
+                  {/* Player Stats */}
+                  <div className="grid grid-cols-2 gap-4 w-full mt-6 text-center">
+                    <div className="bg-black/40 border border-slate-800 rounded p-2">
+                      <div className="text-xs text-slate-500">DEFENSE</div>
+                      <div className="font-game text-blue-400">{profile?.defense || 0}</div>
+                    </div>
+                    <div className="bg-black/40 border border-slate-800 rounded p-2">
+                      <div className="text-xs text-slate-500">CRIT RATE</div>
+                      <div className="font-game text-yellow-400">{profile?.crit_chance || 5}%</div>
+                    </div>
+                    <div className="col-span-2 bg-black/40 border border-slate-800 rounded p-2">
+                      <div className="text-xs text-slate-500">COMBO MULTIPLIER</div>
+                      <div className="font-game text-emerald-400">x{profile?.combo_multiplier || 1.0}</div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* PATH A (Hard) */}
-                <motion.div 
-                  initial={{ opacity: 0, x: -50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  whileHover={!isCommitting ? { scale: 1.02 } : {}}
-                  onHoverStart={() => !isCommitting && setHoveredPath('A')}
-                  onHoverEnd={() => !isCommitting && setHoveredPath(null)}
-                  className={`flex-1 glass-card border-2 transition-all duration-300 rounded-xl overflow-hidden ${
-                    hoveredPath === 'A' ? 'border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.3)]' : 'border-slate-800 opacity-70 hover:opacity-100'
-                  } ${hoveredPath === 'B' ? 'opacity-30 blur-sm' : ''}`}
-                >
-                  <div className="bg-gradient-to-b from-blue-900/40 to-transparent p-8 h-full flex flex-col">
-                    <div className="text-blue-400 font-game text-xs mb-2 tracking-widest uppercase">Path of Resistance</div>
-                    <h2 className="font-game text-2xl text-white mb-4">{crossroads.pathA.title}</h2>
-                    <p className="text-slate-300 text-sm mb-8 flex-1">{crossroads.pathA.description}</p>
-                    
-                    <div className="bg-black/50 rounded-lg p-4 mb-6 border border-slate-700">
-                      <h3 className="font-game text-xs text-slate-500 mb-3 text-center">PROJECTED OUTCOME</h3>
-                      <div className="flex justify-around text-center">
-                        <div>
-                          <div className="text-xs text-slate-500">XP GAIN</div>
-                          <div className="font-game text-blue-400 text-xl">+{crossroads.pathA.projected_xp}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-slate-500">HP CHANGE</div>
-                          <div className={`font-game text-xl ${crossroads.pathA.projected_hp_change < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                            {crossroads.pathA.projected_hp_change > 0 ? '+' : ''}{crossroads.pathA.projected_hp_change}
-                          </div>
-                        </div>
-                      </div>
+
+                {/* --- VS TEXT --- */}
+                <div className="font-game text-4xl text-slate-700 hidden md:block">VS</div>
+
+
+                {/* --- BOSS SIDE (RIGHT) --- */}
+                <div className="w-full md:w-5/12 flex flex-col items-center">
+                  <div className="w-full mb-6">
+                    <div className="flex justify-between items-end mb-2">
+                      <h2 className="font-game text-xl text-purple-400">{boss.name}</h2>
+                      <span className="font-mono text-sm text-slate-400">{boss.current_hp} / {boss.max_hp} HP</span>
                     </div>
-
-                    <button 
-                      disabled={isCommitting}
-                      onClick={() => handleCommit(crossroads.pathA, 'A')}
-                      className={`w-full py-4 rounded font-game transition-all ${
-                        hoveredPath === 'A' ? 'bg-blue-600 text-white shadow-[0_0_15px_#2563eb]' : 'bg-slate-800 text-slate-400'
-                      }`}
-                    >
-                      {isCommitting && hoveredPath === 'A' ? 'SEALING FATE...' : 'EMBRACE THE STRUGGLE'}
-                    </button>
-                  </div>
-                </motion.div>
-
-                {/* PATH B (Easy) */}
-                <motion.div 
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  whileHover={!isCommitting ? { scale: 1.02 } : {}}
-                  onHoverStart={() => !isCommitting && setHoveredPath('B')}
-                  onHoverEnd={() => !isCommitting && setHoveredPath(null)}
-                  className={`flex-1 glass-card border-2 transition-all duration-300 rounded-xl overflow-hidden ${
-                    hoveredPath === 'B' ? 'border-red-500 shadow-[0_0_30px_rgba(220,38,38,0.3)]' : 'border-slate-800 opacity-70 hover:opacity-100'
-                  } ${hoveredPath === 'A' ? 'opacity-30 blur-sm' : ''}`}
-                >
-                  <div className="bg-gradient-to-b from-red-900/20 to-transparent p-8 h-full flex flex-col">
-                    <div className="text-red-400 font-game text-xs mb-2 tracking-widest uppercase">Path of Comfort</div>
-                    <h2 className="font-game text-2xl text-white mb-4">{crossroads.pathB.title}</h2>
-                    <p className="text-slate-300 text-sm mb-8 flex-1">{crossroads.pathB.description}</p>
-                    
-                    <div className="bg-black/50 rounded-lg p-4 mb-6 border border-slate-700">
-                      <h3 className="font-game text-xs text-slate-500 mb-3 text-center">PROJECTED OUTCOME</h3>
-                      <div className="flex justify-around text-center">
-                        <div>
-                          <div className="text-xs text-slate-500">XP GAIN</div>
-                          <div className="font-game text-slate-400 text-xl">+{crossroads.pathB.projected_xp}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-slate-500">HP CHANGE</div>
-                          <div className={`font-game text-xl ${crossroads.pathB.projected_hp_change < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                            {crossroads.pathB.projected_hp_change > 0 ? '+' : ''}{crossroads.pathB.projected_hp_change}
-                          </div>
-                        </div>
-                      </div>
+                    <div className="w-full h-6 bg-slate-900 rounded-sm border-2 border-slate-700 p-0.5 relative overflow-hidden">
+                      <motion.div 
+                        className={`h-full ${isDefeated ? 'bg-slate-700' : 'bg-red-500'} rounded-sm`}
+                        initial={{ width: `${bossHpPercent}%` }}
+                        animate={{ width: `${bossHpPercent}%` }}
+                        transition={{ duration: 0.5, type: "spring" }}
+                      />
+                      <div className="absolute inset-0 bg-[url('/grid.png')] opacity-20 pointer-events-none" />
                     </div>
-
-                    <button 
-                      disabled={isCommitting}
-                      onClick={() => handleCommit(crossroads.pathB, 'B')}
-                      className={`w-full py-4 rounded font-game transition-all ${
-                        hoveredPath === 'B' ? 'bg-red-900 text-red-200 border border-red-500 shadow-[0_0_15px_#991b1b]' : 'bg-slate-800 text-slate-400'
-                      }`}
-                    >
-                      {isCommitting && hoveredPath === 'B' ? 'SEALING FATE...' : 'SUCCUMB TO COMFORT'}
-                    </button>
                   </div>
-                </motion.div>
 
+                  <AnimatePresence>
+                    {!isDefeated ? (
+                      <motion.div
+                        key="boss-active"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={bossShake 
+                          ? { x: [-15, 15, -15, 15, 0], filter: ['brightness(1) hue-rotate(0deg)', 'brightness(3) hue-rotate(50deg)', 'brightness(1) hue-rotate(0deg)'] }
+                          : { opacity: 1, scale: 1, y: [0, -10, 0] }
+                        }
+                        transition={bossShake ? { duration: 0.4 } : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                        className="relative"
+                      >
+                        {/* 3D Boss Image */}
+                        <div 
+                          className="w-48 h-48 rounded-full border-4 border-red-900/50 relative z-10 overflow-hidden"
+                          style={{
+                            boxShadow: '0 0 50px rgba(190,18,60,0.4), inset 0 0 20px rgba(0,0,0,0.8)'
+                          }}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img 
+                            src="/boss-face.jpg" 
+                            alt="Boss Face" 
+                            className="w-full h-full object-cover hover:scale-110 transition-transform duration-700"
+                            style={{ 
+                              filter: 'drop-shadow(0 0 10px rgba(255,0,0,0.5))',
+                              transform: `rotate(${Math.floor(Date.now() / (7*24*60*60*1000)) % 4 === 0 ? 0 : 0}deg)`
+                            }} 
+                          />
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="boss-defeated"
+                        initial={{ opacity: 1, scale: 1 }}
+                        animate={{ opacity: 0, scale: 0, rotate: 180 }}
+                        transition={{ duration: 1.5 }}
+                        className="w-48 h-48 bg-red-900 rounded-full blur-xl flex items-center justify-center text-5xl font-game text-yellow-400"
+                      >
+                        SLAIN
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Boss Stats */}
+                  <div className="grid grid-cols-2 gap-4 w-full mt-6 text-center">
+                    <div className="bg-black/40 border border-slate-800 rounded p-2">
+                      <div className="text-xs text-slate-500">ATTACK</div>
+                      <div className="font-game text-red-400">{boss.atk || '?'}</div>
+                    </div>
+                    <div className="bg-black/40 border border-slate-800 rounded p-2">
+                      <div className="text-xs text-slate-500">DEFENSE</div>
+                      <div className="font-game text-slate-400">{boss.def || '?'}</div>
+                    </div>
+                    {boss.signature_move && (
+                      <div className="col-span-2 bg-black/40 border border-slate-800 rounded p-2">
+                        <div className="text-xs text-slate-500">SIGNATURE MOVE</div>
+                        <div className="font-game text-purple-400 text-xs">{boss.signature_move}</div>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
               </div>
             </div>
-          ) : (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="glass-card pixel-border p-12 text-center max-w-2xl mx-auto border-red-500/50"
-            >
-              <div className="text-6xl mb-6" aria-hidden="true">⚠️</div>
-              <h2 className="font-game text-2xl text-red-400 mb-4">THE ORACLE IS SILENT</h2>
-              <p className="text-slate-400 mb-6">
-                The cosmic threads are tangled. The AI failed to generate a decision path.
-              </p>
-              <button 
-                onClick={() => { setLoading(true); fetchOptions(); }}
-                className="btn-primary py-2 px-6 font-game text-sm"
-              >
-                TRY AGAIN
-              </button>
-            </motion.div>
           )}
+
+          <div className="glass-card p-6 text-center mt-8 max-w-2xl mx-auto">
+            <h3 className="font-game text-sm text-purple-400 mb-2">TACTICAL OVERVIEW</h3>
+            <p className="text-slate-400 text-sm">
+              Your quests deal damage based on XP earned vs Boss Defense. The boss counter-attacks against your Defense. 
+              Maintain your Combo Multiplier by completing quests within 30 minutes to deal devastating blows!
+            </p>
+          </div>
 
         </div>
       </main>

@@ -23,13 +23,20 @@ export async function POST(request: Request) {
     ]);
 
     if (profileRes.error) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+      console.error('Profile fetch error:', profileRes.error);
+      // Don't fail completely, just use defaults
     }
 
-    const currentXp = (profileRes.data as any).xp || 0;
-    const currentLevel = (profileRes.data as any).level || 1;
-    const attrs = attrsRes.data || { strength: 1, intellect: 1, discipline: 1, creativity: 1 };
-    const currentStreak = (streakRes.data as any)?.current_streak || 0;
+    const currentXp = Number(profileRes.data?.xp) || 0;
+    const currentLevel = Number(profileRes.data?.level) || 1;
+    
+    const attrs = attrsRes.data || {};
+    const baseStrength = Number(attrs.strength) || 1;
+    const baseIntellect = Number(attrs.intellect) || 1;
+    const baseDiscipline = Number(attrs.discipline) || 1;
+    const baseCreativity = Number(attrs.creativity) || 1;
+    
+    const currentStreak = Number(streakRes.data?.current_streak) || 0;
 
     // Calculate dynamic average XP based on their actual completed quests history
     let avgXpPerQuest = 15; // fallback
@@ -43,24 +50,20 @@ export async function POST(request: Request) {
     }
 
     const weeks = daysToProject / 7;
-    // Total quests = (questsPerDay * activeDays * weeks)
     const totalQuests = Math.floor(questsPerDay * activeDays * weeks);
 
     const projectedXp = currentXp + (totalQuests * avgXpPerQuest);
     const projectedLevel = calculateLevel(projectedXp);
 
-    // Estimate attribute gains. If they do totalQuests, assume a spread.
-    // E.g. each quest gives ~1 stat point to a random stat. We'll distribute evenly.
     const statGainPerAttr = Math.floor(totalQuests / 4);
 
     const projectedStats = {
-      strength: attrs.strength + statGainPerAttr,
-      intellect: attrs.intellect + statGainPerAttr,
-      discipline: attrs.discipline + statGainPerAttr,
-      creativity: attrs.creativity + statGainPerAttr,
+      strength: baseStrength + statGainPerAttr,
+      intellect: baseIntellect + statGainPerAttr,
+      discipline: baseDiscipline + statGainPerAttr,
+      creativity: baseCreativity + statGainPerAttr,
     };
 
-    // Calculate projected streak if activeDays === 7
     let projectedStreak = currentStreak;
     if (activeDays >= 6) {
        projectedStreak = currentStreak + daysToProject;
@@ -72,7 +75,7 @@ export async function POST(request: Request) {
       current: {
         xp: currentXp,
         level: currentLevel,
-        attributes: attrs,
+        attributes: { strength: baseStrength, intellect: baseIntellect, discipline: baseDiscipline, creativity: baseCreativity },
         streak: currentStreak
       },
       projected: {
