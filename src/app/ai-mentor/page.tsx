@@ -104,7 +104,7 @@ export default function AIMentorPage() {
       let isProseComplete = false;
 
       while (!done) {
-        const { value, readerDone } = await reader.read();
+        const { value, done: readerDone } = await reader.read();
         if (value) {
           text += decoder.decode(value, { stream: true });
           

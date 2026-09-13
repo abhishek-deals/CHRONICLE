@@ -181,7 +181,7 @@ export const useGameStore = create<GameState>((set) => ({
   applyUndoResult: (taskId, result) =>
     set((state) => ({
       tasks: state.tasks.map((t) =>
-        t.id === taskId ? { ...t, status: 'active', completed_at: undefined } : t
+        t.id === taskId ? { ...t, status: 'active', completed_at: null } : t
       ),
       profile: result.profile || state.profile,
       attributes: result.attributes || state.attributes,
