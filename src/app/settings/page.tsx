@@ -32,9 +32,11 @@ const DEFAULT_SETTINGS: UserSettings = {
 const TABS = ['Gameplay', 'Appearance', 'Audio', 'Notifications', 'Accessibility', 'Account', 'Data'];
 
 export default function SettingsPage() {
-  const { settings, setSettings, updateSettings } = useGameStore();
+  const { settings, setSettings, updateSettings, profile, setProfile } = useGameStore();
   const [activeTab, setActiveTab] = useState('Gameplay');
   const [isSaving, setIsSaving] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+  const [localDisplayName, setLocalDisplayName] = useState('');
 
   // For controlled inputs before they are saved to store
   const [localSettings, setLocalSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
@@ -57,16 +59,33 @@ export default function SettingsPage() {
     }
   }, [settings, setSettings]);
 
-  const handleSave = () => {
+  useEffect(() => {
+    if (profile) {
+      setLocalDisplayName(profile.username);
+    }
+    const fetchUser = async () => {
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        setUserEmail(user.email);
+      }
+    };
+    fetchUser();
+  }, [profile]);
+
+  const handleSave = async () => {
     setIsSaving(true);
     
-    fetch('/api/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(localSettings)
-    })
-    .then(res => res.json())
-    .then(data => {
+    try {
+      // Save settings
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(localSettings)
+      });
+      const data = await res.json();
+      
       if (data.settings) {
         setSettings(data.settings);
         if (data.settings.crt_effect) {
@@ -74,10 +93,27 @@ export default function SettingsPage() {
         } else {
           localStorage.removeItem('chronicle-crt');
         }
-        toast.success('Settings saved successfully!');
       }
-    })
-    .finally(() => setIsSaving(false));
+
+      // Save profile if display name changed
+      if (profile && localDisplayName !== profile.username) {
+        const profileRes = await fetch('/api/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: localDisplayName })
+        });
+        const profileData = await profileRes.json();
+        if (profileData.success) {
+          setProfile({ ...profile, username: profileData.username });
+        }
+      }
+
+      toast.success('Settings saved successfully!');
+    } catch (err) {
+      toast.error('Failed to save settings.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const updateLocal = (key: keyof UserSettings, value: any) => {
@@ -284,7 +320,7 @@ export default function SettingsPage() {
                         <input
                           type="email"
                           disabled
-                          value="demo@chronicle.com"
+                          value={userEmail}
                           className="input-field text-sm w-full sm:w-96 opacity-50 cursor-not-allowed"
                         />
                         <p className="text-xs text-slate-500 mt-1">Managed via authentication provider.</p>
@@ -294,7 +330,8 @@ export default function SettingsPage() {
                         <label className="block text-sm font-medium text-slate-300 mb-2">Display Name</label>
                         <input
                           type="text"
-                          defaultValue="Demo Adventurer"
+                          value={localDisplayName}
+                          onChange={(e) => setLocalDisplayName(e.target.value)}
                           className="input-field text-sm w-full sm:w-96"
                         />
                       </div>
@@ -316,12 +353,62 @@ export default function SettingsPage() {
                     </div>
                   )}
 
-                  {/* OTHER TABS */}
-                  {['Notifications', 'Accessibility'].includes(activeTab) && (
-                    <div className="text-center py-12">
-                      <p className="text-4xl mb-4" aria-hidden="true">🚧</p>
-                      <p className="font-game text-sm text-purple-300 mb-2">{activeTab.toUpperCase()} UNDER CONSTRUCTION</p>
-                      <p className="text-slate-500 text-sm">The dwarven smiths are still forging these settings.</p>
+                  {/* NOTIFICATIONS */}
+                  {activeTab === 'Notifications' && (
+                    <div className="space-y-3">
+                      {[
+                        { key: 'quest_reminders', label: 'Quest Reminders', desc: 'Daily nudges to complete tasks.' },
+                        { key: 'achievement_notifications', label: 'Achievement Notifications', desc: 'Alerts when you unlock new titles or feats.' },
+                        { key: 'level_up_notifications', label: 'Level Up Notifications', desc: 'Alerts when you grow in power.' },
+                        { key: 'campaign_reminders', label: 'Campaign Reminders', desc: 'Updates on ongoing sagas.' },
+                      ].map(({ key, label, desc }) => (
+                        <div key={key} className="flex items-center justify-between p-4 rounded-lg bg-black/20 border border-purple-900/30">
+                          <div>
+                            <div className="text-sm text-slate-200">{label}</div>
+                            <div className="text-xs text-slate-500">{desc}</div>
+                          </div>
+                          <Toggle 
+                            checked={localSettings[key as keyof UserSettings] as boolean} 
+                            onChange={(v) => updateLocal(key as keyof UserSettings, v)} 
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* ACCESSIBILITY */}
+                  {activeTab === 'Accessibility' && (
+                    <div className="space-y-6">
+                      <div className="space-y-3">
+                        {[
+                          { key: 'reduce_motion', label: 'Reduce Motion', desc: 'Minimize UI animations.' },
+                          { key: 'high_contrast', label: 'High Contrast Mode', desc: 'Increase text legibility.' },
+                        ].map(({ key, label, desc }) => (
+                          <div key={key} className="flex items-center justify-between p-4 rounded-lg bg-black/20 border border-purple-900/30">
+                            <div>
+                              <div className="text-sm text-slate-200">{label}</div>
+                              <div className="text-xs text-slate-500">{desc}</div>
+                            </div>
+                            <Toggle 
+                              checked={localSettings[key as keyof UserSettings] as boolean} 
+                              onChange={(v) => updateLocal(key as keyof UserSettings, v)} 
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">Font Size</label>
+                        <select 
+                          value={localSettings.font_size} 
+                          onChange={(e) => updateLocal('font_size', e.target.value)}
+                          className="input-field text-sm w-full sm:w-64"
+                        >
+                          <option value="Small">Small</option>
+                          <option value="Normal">Normal</option>
+                          <option value="Large">Large</option>
+                        </select>
+                      </div>
                     </div>
                   )}
 

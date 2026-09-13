@@ -30,3 +30,33 @@ export async function GET() {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    if (!body.username || typeof body.username !== 'string') {
+      return NextResponse.json({ error: 'Invalid username' }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ username: body.username })
+      .eq('id', user.id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, username: body.username }, { status: 200 });
+  } catch (err) {
+    console.error('PATCH /api/profile error:', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
