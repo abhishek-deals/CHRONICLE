@@ -217,7 +217,7 @@ export default function AIMentorPage() {
 
       <main
         className="pb-20 md:pb-0 md:pl-64 min-h-screen"
-        style={{ background: 'radial-gradient(ellipse at top, #1a0a2e 0%, #050211 60%)' }}
+       
       >
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
           <div className="flex items-center justify-center gap-4 mb-2">

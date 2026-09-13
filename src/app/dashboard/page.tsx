@@ -96,7 +96,7 @@ export default function DashboardPage() {
       )}
       <Sidebar />
 
-      <main className="pb-20 md:pb-0 md:pl-64 min-h-screen" style={{ background: 'radial-gradient(ellipse at top, #1a0a2e 0%, #050211 60%)' }}>
+      <main className="pb-20 md:pb-0 md:pl-64 min-h-screen relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
           {fetchError && (

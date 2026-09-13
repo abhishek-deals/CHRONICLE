@@ -105,7 +105,7 @@ export default function QuestsPage() {
 
       <main
         className="pb-20 md:pb-0 md:pl-64 min-h-screen"
-        style={{ background: 'radial-gradient(ellipse at top, #1a0a2e 0%, #050211 60%)' }}
+       
       >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">

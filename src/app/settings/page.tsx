@@ -145,7 +145,7 @@ export default function SettingsPage() {
       <CRTOverlay enabled={localSettings.crt_effect} />
       <Sidebar />
 
-      <main className="pb-24 md:pb-0 md:pl-64 min-h-screen" style={{ background: 'radial-gradient(ellipse at top, #1a0a2e 0%, #050211 60%)' }}>
+      <main className="pb-24 md:pb-0 md:pl-64 min-h-screen">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
           
           <div className="flex items-center justify-between mb-8">

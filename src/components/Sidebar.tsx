@@ -8,7 +8,7 @@ import { useGameStore } from '@/store/game';
 import { useRouter } from 'next/navigation';
 
 const navItems = [
-  { href: '/dashboard',   label: 'HQ',           icon: '🏠' },
+  { href: '/dashboard',   label: 'DASHBOARD',    icon: '🏠' },
   { href: '/oracle',      label: 'ORACLE',       icon: '🔮' },
   { href: '/quests',      label: 'QUESTS',       icon: '📜' },
   { href: '/arena',       label: 'ARENA',        icon: '⚔️' },
@@ -35,10 +35,22 @@ export function Sidebar() {
 
   return (
     <>
+      {/* GLOBAL DASHBOARD BACKGROUND */}
+      <div 
+        className="fixed inset-0 pointer-events-none" 
+        style={{ 
+          zIndex: -10,
+          backgroundImage: "linear-gradient(to bottom, rgba(5,2,17,0.7) 0%, rgba(5,2,17,0.9) 100%), url('/dashboard-bg.jpg')", 
+          backgroundSize: 'cover', 
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed' 
+        }} 
+      />
+
       {/* DESKTOP SIDEBAR */}
       <aside
         className="hidden md:flex flex-col fixed inset-y-0 left-0 w-64 border-r border-purple-900/50 z-40"
-        style={{ background: 'rgba(5, 2, 17, 0.95)', backdropFilter: 'blur(12px)' }}
+        style={{ background: 'rgba(5, 2, 17, 0.75)', backdropFilter: 'blur(16px)' }}
         aria-label="Sidebar navigation"
       >
         <div className="p-6 flex-shrink-0">
@@ -93,8 +105,8 @@ export function Sidebar() {
 
       {/* MOBILE BOTTOM BAR */}
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 border-t border-purple-900/50 z-50 flex flex-wrap items-center justify-around pb-safe bg-black"
-        style={{ background: 'rgba(5, 2, 17, 0.95)', backdropFilter: 'blur(12px)' }}
+        className="md:hidden fixed bottom-0 left-0 right-0 border-t border-purple-900/50 z-50 flex flex-wrap items-center justify-around pb-safe"
+        style={{ background: 'rgba(5, 2, 17, 0.75)', backdropFilter: 'blur(16px)' }}
         aria-label="Mobile bottom navigation"
       >
         <div className="flex w-full overflow-x-auto hide-scrollbar">

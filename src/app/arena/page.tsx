@@ -128,7 +128,7 @@ export default function ArenaPage() {
       <CRTOverlay enabled={crtEnabled} />
       <Sidebar />
 
-      <main className="pb-20 md:pb-0 md:pl-64 min-h-screen" style={{ background: 'radial-gradient(ellipse at top, #1a0a2e 0%, #050211 60%)' }}>
+      <main className="pb-20 md:pb-0 md:pl-64 min-h-screen">
         
         {/* CRIT FLASH OVERLAY */}
         <AnimatePresence>
