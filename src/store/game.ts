@@ -36,6 +36,7 @@ export interface Task {
   attribute_tag: string;
   created_at: string | null;
   completed_at: string | null;
+  deadline?: string | null;
 }
 
 export interface Chapter {

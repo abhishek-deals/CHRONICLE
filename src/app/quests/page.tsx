@@ -25,6 +25,7 @@ export default function QuestsPage() {
   const [category, setCategory] = useState<string>('General');
   const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard' | 'Epic'>('Easy');
   const [attributeTag, setAttributeTag] = useState<string>('discipline');
+  const [deadline, setDeadline] = useState('');
   const [titleError, setTitleError] = useState('');
 
   useEffect(() => {
@@ -66,6 +67,7 @@ export default function QuestsPage() {
           category,
           difficulty,
           attribute_tag: attributeTag,
+          deadline: deadline ? new Date(deadline).toISOString() : null,
         }),
       });
 
@@ -230,6 +232,22 @@ export default function QuestsPage() {
                     </select>
                   </div>
 
+                  {/* Deadline */}
+                  <div className="mb-4">
+                    <label htmlFor="quest-deadline" className="block text-sm text-slate-300 mb-2">
+                      Deadline (Optional)
+                    </label>
+                    <input
+                      id="quest-deadline"
+                      type="datetime-local"
+                      className="input-field"
+                      value={deadline}
+                      onChange={(e) => setDeadline(e.target.value)}
+                      disabled={creating}
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">If the deadline passes, you will lose Gold & XP.</p>
+                  </div>
+
                   {/* Reward preview (read-only — server controls actual values) */}
                   <div className="mb-5 p-3 rounded-lg bg-purple-900/20 border border-purple-800/30">
                     <p className="text-xs text-slate-400 mb-1">Quest Reward</p>
@@ -297,6 +315,20 @@ export default function QuestsPage() {
                             />
                           ))}
                         </AnimatePresence>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Failed */}
+                  {tasks.filter(t => t.status === 'failed').length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="font-game text-xs text-red-400 mb-3">
+                        FAILED DUE TO DEADLINE ({tasks.filter(t => t.status === 'failed').length})
+                      </h3>
+                      <div className="space-y-2 opacity-50">
+                        {tasks.filter(t => t.status === 'failed').map((task) => (
+                          <QuestCard key={task.id} task={task} />
+                        ))}
                       </div>
                     </div>
                   )}

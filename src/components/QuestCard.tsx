@@ -36,6 +36,7 @@ export function QuestCard({ task, onCompleted, onDeleted }: Props) {
   const { optimisticComplete, rollbackComplete, applyCompleteResult, removeTask } = useGameStore();
 
   const isCompleted = task.status === 'completed';
+  const isFailed = task.status === 'failed';
   const reward = QUEST_REWARDS[task.difficulty as keyof typeof QUEST_REWARDS];
 
   const handleComplete = useCallback(
@@ -184,10 +185,10 @@ export function QuestCard({ task, onCompleted, onDeleted }: Props) {
         <motion.div
           layout
           initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: isCompleted ? 0.6 : 1, y: 0 }}
+          animate={{ opacity: isCompleted || isFailed ? 0.6 : 1, y: 0 }}
           exit={{ opacity: 0, x: -100 }}
           transition={{ duration: 0.3 }}
-          className={`glass-card p-4 rounded-lg ${isCompleted ? 'grayscale' : ''}`}
+          className={`glass-card p-4 rounded-lg ${isCompleted ? 'grayscale' : ''} ${isFailed ? 'border-red-900/50 bg-red-900/10' : ''}`}
           style={{
             borderColor: isCompleted ? 'rgba(75,85,99,0.3)' : undefined,
           }}
@@ -208,23 +209,35 @@ export function QuestCard({ task, onCompleted, onDeleted }: Props) {
               </div>
               <p
                 className={`text-sm font-medium leading-snug ${
-                  isCompleted ? 'line-through text-slate-500' : 'text-slate-100'
+                  isCompleted ? 'line-through text-slate-500' : isFailed ? 'line-through text-red-400' : 'text-slate-100'
                 }`}
               >
                 {task.title}
               </p>
-              {reward && (
+              {task.deadline && (
+                <p className={`text-[10px] mt-1 ${isFailed ? 'text-red-500' : 'text-amber-500/80'}`}>
+                  ⏳ {new Date(task.deadline).toLocaleString()}
+                </p>
+              )}
+              {reward && !isFailed && (
                 <p className="text-xs text-slate-500 mt-1">
                   <span className="text-emerald-500">+{reward.xp} XP</span>
                   {' • '}
                   <span className="text-yellow-500">+{reward.gold} Gold</span>
                 </p>
               )}
+              {reward && isFailed && (
+                <p className="text-xs text-red-500 mt-1 font-game">
+                  <span>-{Math.floor(reward.xp / 2)} XP</span>
+                  {' • '}
+                  <span>-{Math.floor(reward.gold / 2)} Gold</span>
+                </p>
+              )}
             </div>
 
             {/* Right: actions */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              {!isCompleted && (
+              {!isCompleted && !isFailed && (
                 <button
                   ref={btnRef}
                   id={`complete-quest-${task.id}`}
@@ -241,7 +254,10 @@ export function QuestCard({ task, onCompleted, onDeleted }: Props) {
               {isCompleted && (
                 <span className="text-emerald-400 text-lg" aria-label="Quest completed">✓</span>
               )}
-              {!isCompleted && (
+              {isFailed && (
+                <span className="text-red-500 text-lg font-game" aria-label="Quest failed">FAILED</span>
+              )}
+              {!isCompleted && !isFailed && (
                 <button
                   id={`delete-quest-${task.id}`}
                   className="btn-danger text-xs py-1.5 px-2"
