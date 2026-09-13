@@ -264,7 +264,25 @@ export default function ArenaPage() {
 
               </div>
             </div>
-          ) : null}
+          ) : (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="glass-card pixel-border p-12 text-center max-w-2xl mx-auto border-red-500/50"
+            >
+              <div className="text-6xl mb-6" aria-hidden="true">⚠️</div>
+              <h2 className="font-game text-2xl text-red-400 mb-4">THE ORACLE IS SILENT</h2>
+              <p className="text-slate-400 mb-6">
+                The cosmic threads are tangled. The AI failed to generate a decision path.
+              </p>
+              <button 
+                onClick={() => { setLoading(true); fetchOptions(); }}
+                className="btn-primary py-2 px-6 font-game text-sm"
+              >
+                TRY AGAIN
+              </button>
+            </motion.div>
+          )}
 
         </div>
       </main>
