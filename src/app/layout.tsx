@@ -1,17 +1,17 @@
 import type { Metadata } from 'next';
-import { Permanent_Marker, Kalam } from 'next/font/google';
+import { Cinzel_Decorative, Lora } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'sonner';
 
-const gameFont = Permanent_Marker({
-  weight: '400',
+const gameFont = Cinzel_Decorative({
+  weight: ['400', '700'],
   subsets: ['latin'],
   variable: '--font-press-start',
   display: 'swap',
 });
 
-const bodyFont = Kalam({
-  weight: ['300', '400', '700'],
+const bodyFont = Lora({
+  weight: ['400', '500', '600', '700'],
   subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap',
