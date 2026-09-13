@@ -81,7 +81,7 @@ If you have no quests to suggest, return an empty array [] for QUESTS.`;
 
     try {
       const model = genAI.getGenerativeModel({ 
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.5-flash',
         systemInstruction: systemPrompt
       });
 
