@@ -118,7 +118,39 @@ export default function OraclePage() {
       <CRTOverlay enabled={crtEnabled} />
       <Sidebar />
 
-      <main className="pb-24 md:pb-0 md:pl-64 min-h-screen">
+      
+      {/* Doctor Doom Background */}
+      <div
+        className="fixed inset-0 z-0 pointer-events-none"
+        style={{
+          backgroundImage: 'url(/doom-bg-2.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center center',
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed',
+        }}
+      >
+        {/* Very light overlay */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'linear-gradient(180deg, rgba(5,2,17,0.35) 0%, rgba(5,2,17,0.25) 50%, rgba(5,2,17,0.40) 100%)',
+          }}
+        />
+        {/* Subtle green edge vignette */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0,20,10,0.55) 100%)',
+          }}
+        />
+      </div>
+
+      <main className="pb-24 md:pb-0 md:pl-64 min-h-screen relative z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-12">
           {/* Header */}
           <div className="text-center">

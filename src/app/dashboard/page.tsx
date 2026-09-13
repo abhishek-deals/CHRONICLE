@@ -101,7 +101,7 @@ export default function DashboardPage() {
       <div
         className="fixed inset-0 z-0 pointer-events-none"
         style={{
-          backgroundImage: 'url(/doom-bg.jpg)',
+          backgroundImage: 'url(/doom-bg-2.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center center',
           backgroundRepeat: 'no-repeat',
