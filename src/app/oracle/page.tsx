@@ -12,7 +12,17 @@ type BuffType =
   | 'the_emperor'
   | 'the_fool'
   | 'the_magician'
-  | 'the_hermit';
+  | 'the_hermit'
+  | 'the_high_priestess'
+  | 'the_tower'
+  | 'wheel_of_fortune'
+  | 'justice'
+  | 'the_star'
+  | 'the_moon'
+  | 'the_sun'
+  | 'judgement'
+  | 'the_world'
+  | 'strength';
 
 interface Buff {
   id: BuffType;
@@ -65,6 +75,76 @@ const BUFFS: Buff[] = [
     icon: '🏔️',
     color: 'from-slate-600 to-gray-400',
   },
+  {
+    id: 'the_high_priestess',
+    name: 'The High Priestess',
+    description: 'Intellect quests grant 3x XP, but Discipline quests grant 0.',
+    icon: '🌙',
+    color: 'from-indigo-600 to-purple-400',
+  },
+  {
+    id: 'the_tower',
+    name: 'The Tower',
+    description: 'Double Boss Damage from all quests, but you take double counter-damage.',
+    icon: '⚡',
+    color: 'from-red-600 to-orange-400',
+  },
+  {
+    id: 'wheel_of_fortune',
+    name: 'Wheel of Fortune',
+    description: 'Gold rewards are randomly multiplied between 1x and 4x.',
+    icon: '🎡',
+    color: 'from-yellow-400 to-orange-500',
+  },
+  {
+    id: 'justice',
+    name: 'Justice',
+    description: 'Perfectly balances XP and Gold rewards for all quests.',
+    icon: '⚖️',
+    color: 'from-blue-400 to-indigo-500',
+  },
+  {
+    id: 'the_star',
+    name: 'The Star',
+    description: 'Heal for 20 HP upon completing any quest.',
+    icon: '⭐',
+    color: 'from-teal-400 to-emerald-300',
+  },
+  {
+    id: 'the_moon',
+    name: 'The Moon',
+    description: 'Creativity quests grant massive XP at night.',
+    icon: '🌖',
+    color: 'from-slate-800 to-slate-500',
+  },
+  {
+    id: 'the_sun',
+    name: 'The Sun',
+    description: 'All stats are boosted by 10%. Gold is doubled during the day.',
+    icon: '☀️',
+    color: 'from-orange-400 to-yellow-300',
+  },
+  {
+    id: 'judgement',
+    name: 'Judgement',
+    description: 'Slaying a boss grants an immediate free level up.',
+    icon: '🎺',
+    color: 'from-red-500 to-rose-400',
+  },
+  {
+    id: 'the_world',
+    name: 'The World',
+    description: '+10% to all rewards permanently until tomorrow.',
+    icon: '🌍',
+    color: 'from-green-500 to-teal-400',
+  },
+  {
+    id: 'strength',
+    name: 'Strength',
+    description: 'Strength quests deal 3x damage to bosses.',
+    icon: '🦁',
+    color: 'from-amber-600 to-red-500',
+  }
 ];
 
 export default function OraclePage() {

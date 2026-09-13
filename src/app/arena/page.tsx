@@ -237,7 +237,7 @@ export default function ArenaPage() {
                   <div className="w-full mb-6">
                     <div className="flex justify-between items-end mb-2">
                       <h2 className="font-game text-xl text-blue-400">{profile?.username || 'Hero'}</h2>
-                      <span className="font-mono text-sm text-slate-400">{profile?.current_hp || 0} / {profile?.max_hp || 100} HP</span>
+                      <span className="font-mono text-sm text-blue-400 font-bold">{profile?.current_hp || 0} / {profile?.max_hp || 100} BLUE POWER</span>
                     </div>
                     <div className="w-full h-6 bg-slate-900 rounded-sm border-2 border-slate-700 p-0.5 relative overflow-hidden">
                       <motion.div 
@@ -314,22 +314,23 @@ export default function ArenaPage() {
                         transition={bossShake ? { duration: 0.4 } : { duration: 4, repeat: Infinity, ease: "easeInOut" }}
                         className="relative"
                       >
-                        {/* Scary Eyes */}
-                        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-24 flex justify-between px-4 z-20">
-                          <div className="w-3 h-3 bg-red-500 rounded-full shadow-[0_0_15px_rgba(239,68,68,1)] animate-pulse" />
-                          <div className="w-3 h-3 bg-red-500 rounded-full shadow-[0_0_15px_rgba(239,68,68,1)] animate-pulse" />
-                        </div>
-                        
-                        {/* Silhouette */}
+                        {/* 3D Boss Image */}
                         <div 
-                          className="w-48 h-48 bg-slate-900 mask-image-monster relative z-10"
+                          className="w-48 h-48 rounded-full border-4 border-red-900/50 relative z-10 overflow-hidden"
                           style={{
-                            clipPath: 'polygon(50% 0%, 90% 20%, 100% 60%, 75% 100%, 25% 100%, 0% 60%, 10% 20%)',
-                            boxShadow: 'inset 0 0 50px rgba(168,85,247,0.2)'
+                            boxShadow: '0 0 50px rgba(190,18,60,0.4), inset 0 0 20px rgba(0,0,0,0.8)'
                           }}
                         >
-                          <div className="w-full h-full border-4 border-slate-800 opacity-50" 
-                            style={{ clipPath: 'polygon(50% 0%, 90% 20%, 100% 60%, 75% 100%, 25% 100%, 0% 60%, 10% 20%)' }} />
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img 
+                            src="/boss-face.jpg" 
+                            alt="Boss Face" 
+                            className="w-full h-full object-cover hover:scale-110 transition-transform duration-700"
+                            style={{ 
+                              filter: 'drop-shadow(0 0 10px rgba(255,0,0,0.5))',
+                              transform: `rotate(${Math.floor(Date.now() / (7*24*60*60*1000)) % 4 === 0 ? 0 : 0}deg)`
+                            }} 
+                          />
                         </div>
                       </motion.div>
                     ) : (
