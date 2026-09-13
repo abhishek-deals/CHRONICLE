@@ -118,6 +118,25 @@ export default function CampaignsPage() {
     }
   };
 
+  const handleDeleteCampaign = async (campaignId: string) => {
+    if (!confirm('Are you sure you want to abandon this campaign? This cannot be undone.')) return;
+    
+    try {
+      const res = await fetch(`/api/campaigns/${campaignId}`, {
+        method: 'DELETE'
+      });
+      if (!res.ok) throw new Error('Failed to delete campaign');
+      
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Campaign abandoned.', { icon: '🗑️' });
+        setCampaigns(campaigns.filter(c => c.id !== campaignId));
+      }
+    } catch (err) {
+      toast.error('Network error while deleting campaign');
+    }
+  };
+
   return (
     <>
       <CRTOverlay enabled={crtEnabled} />
@@ -281,7 +300,16 @@ export default function CampaignsPage() {
                       <div key={campaign.id} className="glass-card pixel-border rounded-xl overflow-hidden">
                         <div className="p-6 border-b border-purple-900/30">
                           <div className="flex justify-between items-start mb-2">
-                            <h2 className="font-game text-lg text-white">{campaign.title}</h2>
+                            <div className="flex items-center gap-3">
+                              <h2 className="font-game text-lg text-white">{campaign.title}</h2>
+                              <button
+                                onClick={() => handleDeleteCampaign(campaign.id)}
+                                className="text-slate-500 hover:text-red-400 transition-colors text-sm"
+                                title="Abandon Campaign"
+                              >
+                                🗑️
+                              </button>
+                            </div>
                             <span className="text-xs px-2 py-1 rounded bg-purple-900/50 text-purple-300 font-game">
                               {campaign.category.toUpperCase()}
                             </span>
