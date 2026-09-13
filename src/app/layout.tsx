@@ -1,16 +1,17 @@
 import type { Metadata } from 'next';
-import { Press_Start_2P, Inter } from 'next/font/google';
+import { Permanent_Marker, Kalam } from 'next/font/google';
 import './globals.css';
 import { Toaster } from 'sonner';
 
-const pressStart2P = Press_Start_2P({
+const gameFont = Permanent_Marker({
   weight: '400',
   subsets: ['latin'],
   variable: '--font-press-start',
   display: 'swap',
 });
 
-const inter = Inter({
+const bodyFont = Kalam({
+  weight: ['300', '400', '700'],
   subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap',
@@ -33,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${pressStart2P.variable} ${inter.variable}`}>
+    <html lang="en" className={`${gameFont.variable} ${bodyFont.variable}`}>
       <body className="font-inter bg-gray-950 text-gray-100 min-h-screen antialiased">
         {children}
         <Toaster
