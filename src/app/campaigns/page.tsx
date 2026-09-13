@@ -44,6 +44,21 @@ export default function CampaignsPage() {
     setIsGenerating(true);
     
     try {
+      // 1. Fetch dynamic AI chapters
+      const aiRes = await fetch('/api/ai/generate-campaign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ goal: goal.trim(), category, difficulty })
+      });
+      
+      const aiData = await aiRes.json();
+      const generatedChapters = aiData.chapters || [
+        { title: 'The Awakening', description: 'Laying the foundations of your journey.' },
+        { title: 'The First Trial', description: 'Testing your resolve and commitment.' },
+        { title: 'Mastery', description: 'Achieving true greatness and completing your goal.' },
+      ];
+
+      // 2. Create the campaign
       const res = await fetch('/api/campaigns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -54,11 +69,7 @@ export default function CampaignsPage() {
           difficulty,
           duration_days: duration,
           status: 'active',
-          chapters: [
-            { title: 'The Awakening', description: 'Laying the foundations of your journey.' },
-            { title: 'The First Trial', description: 'Testing your resolve and commitment.' },
-            { title: 'Mastery', description: 'Achieving true greatness and completing your goal.' },
-          ]
+          chapters: generatedChapters
         })
       });
 
