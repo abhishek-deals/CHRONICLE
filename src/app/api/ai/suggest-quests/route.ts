@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@/lib/supabase/server';
 
 // Hardcoded fallback — ensures this NEVER blocks the demo
@@ -61,12 +61,12 @@ export async function POST(request: Request) {
     };
     const weakest = Object.entries(attrValues).sort((a, b) => a[1] - b[1])[0][0];
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey || apiKey === 'YOUR_ANTHROPIC_API_KEY_HERE') {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
       return NextResponse.json({ quests: FALLBACK_QUESTS, fallback: true });
     }
 
-    const client = new Anthropic({ apiKey });
+    const genAI = new GoogleGenerativeAI(apiKey);
 
     const systemPrompt = `You are the Sage, an ancient AI mentor in a life RPG called Chronicle.
 A player's attributes are:
@@ -97,32 +97,40 @@ QUESTS:
 ]
 If you have no quests to suggest, return an empty array [] for QUESTS.`;
 
-    const apiMessages = [
-      ...userMessages.map((m: any) => ({ role: m.role, content: m.content })),
-    ];
-    // We add the system context to the final user message to enforce the format, or as the first message.
-    // Anthropic API supports system prompts at the top level. Let's use `system`.
+    const history = userMessages.map((m: any) => ({
+      role: m.role === 'user' ? 'user' : 'model',
+      parts: [{ text: m.content }]
+    }));
 
     try {
-      const stream = client.messages.stream({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 800,
-        system: systemPrompt,
-        messages: apiMessages.length > 0 ? apiMessages : [{ role: 'user', content: 'Suggest 3 quests for me.' }],
+      const model = genAI.getGenerativeModel({ 
+        model: 'gemini-1.5-flash',
+        systemInstruction: systemPrompt
       });
+
+      const chat = model.startChat({
+        history: history.length > 1 ? history.slice(0, -1) : []
+      });
+      
+      const lastMessage = history.length > 0 ? history[history.length - 1].parts[0].text : 'Suggest 3 quests for me.';
+
+      const result = await chat.sendMessageStream(lastMessage);
 
       const { readable, writable } = new TransformStream();
       const writer = writable.getWriter();
       
-      stream.on('text', (textDelta) => {
-        writer.write(new TextEncoder().encode(textDelta));
-      });
-      stream.on('end', () => {
-        writer.close();
-      });
-      stream.on('error', (err) => {
-        writer.abort(err);
-      });
+      // Process stream asynchronously without blocking
+      (async () => {
+        try {
+          for await (const chunk of result.stream) {
+            writer.write(new TextEncoder().encode(chunk.text()));
+          }
+        } catch (err) {
+          writer.abort(err);
+        } finally {
+          writer.close();
+        }
+      })();
 
       return new NextResponse(readable, {
         headers: {
@@ -132,7 +140,7 @@ If you have no quests to suggest, return an empty array [] for QUESTS.`;
       });
 
     } catch (aiErr) {
-      console.error('Claude API error:', aiErr);
+      console.error('Gemini API error:', aiErr);
       return NextResponse.json({ error: 'Failed to generate quests' }, { status: 500 });
     }
   } catch (err) {

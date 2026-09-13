@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@/lib/supabase/server';
 
 const FALLBACK_CHAPTERS = [
@@ -23,12 +23,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ chapters: FALLBACK_CHAPTERS });
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey || apiKey === 'YOUR_ANTHROPIC_API_KEY_HERE') {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
       return NextResponse.json({ chapters: FALLBACK_CHAPTERS, fallback: true });
     }
 
-    const client = new Anthropic({ apiKey });
+    const genAI = new GoogleGenerativeAI(apiKey);
 
     const systemPrompt = `You are a master storyteller in a fantasy Life RPG called Chronicle.
 The player has created a new Campaign (goal): "${goal}"
@@ -53,14 +53,16 @@ Format:
 `;
 
     try {
-      const response = await client.messages.create({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 300,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: `Generate the 3 chapters for my campaign: ${goal}` }],
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-1.5-flash',
+        systemInstruction: systemPrompt,
+        generationConfig: {
+          responseMimeType: "application/json",
+        }
       });
 
-      const content = response.content[0].type === 'text' ? response.content[0].text : '';
+      const result = await model.generateContent(`Generate the 3 chapters for my campaign: ${goal}`);
+      const content = result.response.text();
       let chapters = FALLBACK_CHAPTERS;
 
       try {
@@ -76,7 +78,7 @@ Format:
 
       return NextResponse.json({ chapters });
     } catch (aiErr) {
-      console.error('Claude API error:', aiErr);
+      console.error('Gemini API error:', aiErr);
       return NextResponse.json({ chapters: FALLBACK_CHAPTERS, fallback: true });
     }
   } catch (err) {
