@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     const weakest = Object.entries(attrValues).sort((a, b) => a[1] - b[1])[0][0];
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
+    if (!apiKey || apiKey === 'YOUR_ANTHROPIC_API_KEY_HERE') {
       return NextResponse.json({ quests: FALLBACK_QUESTS, fallback: true });
     }
 

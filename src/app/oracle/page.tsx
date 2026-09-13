@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import Link from 'next/link';
 
-type BuffType = 'the_chariot' | 'the_merchant' | 'the_emperor';
+type BuffType = 'the_chariot' | 'the_merchant' | 'the_emperor' | 'the_fool' | 'the_magician' | 'the_hermit';
 
 interface Buff {
   id: BuffType;
@@ -36,6 +36,27 @@ const BUFFS: Buff[] = [
     description: '+25% XP and Gold from all quests for 24 hours.',
     icon: '👑',
     color: 'from-purple-600 to-fuchsia-400'
+  },
+  {
+    id: 'the_fool',
+    name: 'The Fool',
+    description: '+100% XP for 24 hours, but gold is reduced by 50%.',
+    icon: '🃏',
+    color: 'from-green-600 to-emerald-400'
+  },
+  {
+    id: 'the_magician',
+    name: 'The Magician',
+    description: '+50% XP and Gold for Intellect and Creativity quests.',
+    icon: '🪄',
+    color: 'from-pink-600 to-rose-400'
+  },
+  {
+    id: 'the_hermit',
+    name: 'The Hermit',
+    description: '-50% Gold but +100% XP for Discipline quests.',
+    icon: '🏔️',
+    color: 'from-slate-600 to-gray-400'
   }
 ];
 

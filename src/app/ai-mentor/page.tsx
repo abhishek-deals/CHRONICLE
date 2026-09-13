@@ -95,6 +95,19 @@ export default function AIMentorPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: newMessages })
       });
+      
+      if (!res.ok) {
+        throw new Error('API response not ok');
+      }
+
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await res.json();
+        if (data.fallback || data.error) {
+           throw new Error('Fallback triggered by server');
+        }
+      }
+
       if (!res.body) throw new Error('No response body');
 
       const reader = res.body.getReader();

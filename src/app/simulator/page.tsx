@@ -20,11 +20,21 @@ export default function SimulatorPage() {
   // Determine avatar "class" based on highest stat
   let dominantClass = 'Novice';
   const maxStat = Math.max(str, int, cre, dis);
-  if (maxStat > 20) {
-    if (str === maxStat) dominantClass = 'Warrior';
-    else if (int === maxStat) dominantClass = 'Mage';
-    else if (cre === maxStat) dominantClass = 'Bard';
-    else if (dis === maxStat) dominantClass = 'Monk';
+  
+  if (maxStat >= 15) {
+    const maxStatsCount = [str, int, cre, dis].filter(s => s === maxStat).length;
+    
+    if (maxStatsCount > 1) {
+      dominantClass = 'Paladin'; // Balanced class
+    } else if (str === maxStat) {
+      dominantClass = 'Warrior';
+    } else if (int === maxStat) {
+      dominantClass = 'Mage';
+    } else if (cre === maxStat) {
+      dominantClass = 'Bard';
+    } else if (dis === maxStat) {
+      dominantClass = 'Monk';
+    }
   }
 
   // Generate a random-looking but deterministic avatar based on stats
@@ -82,7 +92,8 @@ export default function SimulatorPage() {
                   {dominantClass === 'Warrior' ? '⚔️' :
                    dominantClass === 'Mage' ? '🔮' :
                    dominantClass === 'Bard' ? '🎨' :
-                   dominantClass === 'Monk' ? '👁️' : '🧍'}
+                   dominantClass === 'Monk' ? '👁️' :
+                   dominantClass === 'Paladin' ? '🛡️' : '🧍'}
                 </span>
               </div>
               
