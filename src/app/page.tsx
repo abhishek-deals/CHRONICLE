@@ -145,6 +145,20 @@ export default function LandingPage() {
             ))}
           </div>
 
+          {/* Features Hero Image */}
+          <div className="relative w-full rounded-2xl overflow-hidden mb-10 shadow-[0_0_40px_rgba(168,85,247,0.25)] border border-purple-700/30">
+            <Image
+              src="/features-hero.jpg"
+              alt="Chronicle Features — Quest System, Boss Battles, AI Mentor and more"
+              width={1200}
+              height={600}
+              className="w-full object-cover"
+              priority
+            />
+            {/* Bottom fade into cards */}
+            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#050211] to-transparent pointer-events-none" />
+          </div>
+
           {/* Feature cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-left" aria-label="Features">
             {features.map((f, i) => (
