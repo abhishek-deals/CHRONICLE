@@ -133,99 +133,55 @@ export default function WorldMapPage() {
             {/* Grid Lines for scale */}
             <div className="absolute inset-0 opacity-10 bg-[url('/grid.png')] pointer-events-none" />
 
-            {/* --- MAP SVG RENDER --- */}
-            <svg viewBox="0 0 2000 1500" className="absolute inset-0 w-full h-full">
-              <defs>
-                {/* Fog of War Filter */}
-                <filter id="fogOfWar">
-                  <feGaussianBlur stdDeviation="15" result="blur" />
-                  <feColorMatrix type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.8 0"/>
-                </filter>
-                
-                {/* Glow Filter */}
-                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="8" result="blur" />
-                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                </filter>
-              </defs>
+            {/* --- NEW CARTOON MAP BACKGROUND --- */}
+            <div 
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+              style={{ backgroundImage: 'url(/rpg-map.jpg)' }}
+            />
 
-              {/* Connecting Paths (Roads) */}
-              <path d="M1000 750 L600 400" stroke="#334155" strokeWidth="4" strokeDasharray="10,10" fill="none" opacity="0.5" />
-              <path d="M1000 750 L1400 400" stroke="#334155" strokeWidth="4" strokeDasharray="10,10" fill="none" opacity="0.5" />
-              <path d="M1000 750 L600 1100" stroke="#334155" strokeWidth="4" strokeDasharray="10,10" fill="none" opacity="0.5" />
-              <path d="M1000 750 L1400 1100" stroke="#334155" strokeWidth="4" strokeDasharray="10,10" fill="none" opacity="0.5" />
-              
-              {/* Central Hub (Always Unlocked) */}
-              <circle cx="1000" cy="750" r="40" fill="#1e293b" stroke="#94a3b8" strokeWidth="4" filter="url(#glow)" />
-              <text x="1000" y="820" fill="#cbd5e1" fontSize="16" fontFamily="monospace" textAnchor="middle" opacity="0.8">THE NEXUS</text>
+            {/* Fog of War Overlays for the 4 quadrants */}
+            {regions.map((region) => {
+              // Determine coordinates based on ID (matching the generated image)
+              let x = 0, y = 0, w = "50%", h = "50%";
+              if (region.id === 'intellect') { x = 0; y = 0; } // Top Left
+              else if (region.id === 'strength') { x = "50%"; y = 0; } // Top Right
+              else if (region.id === 'discipline') { x = 0; y = "50%"; } // Bottom Left
+              else if (region.id === 'creativity') { x = "50%"; y = "50%"; } // Bottom Right
 
-              {/* Helper to render a region */}
-              {regions.map((region) => {
-                let cx = 0; let cy = 0; let path = "";
-                
-                if (region.id === 'intellect') {
-                  cx = 600; cy = 400;
-                  // Diamond shape
-                  path = "M600 250 L700 400 L600 550 L500 400 Z"; 
-                } else if (region.id === 'strength') {
-                  cx = 1400; cy = 400;
-                  // Jagged Volcano shape
-                  path = "M1300 450 L1350 300 L1400 350 L1450 300 L1500 450 Z";
-                } else if (region.id === 'discipline') {
-                  cx = 600; cy = 1100;
-                  // Blocky Fortress shape
-                  path = "M500 1000 L700 1000 L700 1200 L500 1200 Z";
-                } else if (region.id === 'creativity') {
-                  cx = 1400; cy = 1100;
-                  // Organic blob/forest shape
-                  path = "M1400 950 Q1500 950 1500 1100 Q1500 1200 1400 1200 Q1300 1200 1300 1100 Q1300 950 1400 950 Z";
-                }
+              const isUnlocked = region.unlocked;
 
-                const isUnlocked = region.unlocked;
-                
-                return (
-                  <g 
-                    key={region.id} 
-                    onClick={() => setSelectedRegion(region)}
-                    className="cursor-pointer transition-all duration-300 hover:brightness-125"
-                  >
-                    {/* The Landmass */}
-                    <path 
-                      d={path} 
-                      fill={isUnlocked ? region.bgGlow : '#0f172a'} 
-                      stroke={isUnlocked ? region.bgGlow.replace('0.5', '1') : '#1e293b'} 
-                      strokeWidth="6"
-                      filter={isUnlocked ? "url(#glow)" : "url(#fogOfWar)"}
-                    />
-                    
-                    {/* Label */}
-                    <text 
-                      x={cx} 
-                      y={cy + 180} 
-                      fill={isUnlocked ? '#f8fafc' : '#475569'} 
-                      fontSize="20" 
-                      fontFamily="monospace" 
-                      textAnchor="middle"
-                      style={{ textShadow: '2px 2px 4px #000' }}
-                    >
-                      {isUnlocked ? region.name.toUpperCase() : "UNKNOWN REGION"}
-                    </text>
+              return (
+                <div
+                  key={region.id}
+                  onClick={() => setSelectedRegion(region)}
+                  className={`absolute cursor-pointer transition-all duration-700 ${
+                    !isUnlocked ? 'bg-black/80 backdrop-blur-md' : 'hover:bg-white/10'
+                  }`}
+                  style={{ left: x, top: y, width: w, height: h }}
+                >
+                  {/* Glowing border for unlocked regions on hover, or dark border for locked */}
+                  <div className={`absolute inset-0 border-2 transition-all duration-300 ${
+                    isUnlocked ? 'border-transparent hover:border-white/50' : 'border-black/50'
+                  }`} />
+                  
+                  {/* Status Indicator */}
+                  {!isUnlocked && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50">
+                      <span className="text-6xl mb-4 text-slate-800">🔒</span>
+                      <span className="font-game text-xl tracking-widest text-slate-600">SHROUDED REALM</span>
+                    </div>
+                  )}
+                  {isUnlocked && (
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                      <div className="bg-black/60 px-6 py-2 rounded-full border border-white/20">
+                         <span className={`font-game text-sm ${region.color}`}>{region.name.toUpperCase()}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
 
-                    {/* Icon/Status in center */}
-                    <text 
-                      x={cx} 
-                      y={cy + 10} 
-                      fill={isUnlocked ? '#fff' : '#475569'} 
-                      fontSize="36" 
-                      textAnchor="middle"
-                    >
-                      {isUnlocked ? '✦' : '🔒'}
-                    </text>
-                  </g>
-                );
-              })}
-
-            </svg>
           </motion.div>
         </div>
       </main>
