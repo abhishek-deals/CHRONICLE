@@ -154,6 +154,7 @@ export default function LandingPage() {
                 style={{
                   background: f.color,
                   border: `1px solid ${f.border}`,
+                  backdropFilter: 'blur(6px)',
                 }}
               >
                 <span className="text-4xl" aria-hidden="true">{f.icon}</span>
@@ -164,6 +165,22 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ── FEATURES BG WRAPPER: covers How It Works + CTA ── */}
+        <div
+          style={{
+            backgroundImage: `
+              linear-gradient(to bottom,
+                rgba(5,2,17,0.80) 0%,
+                rgba(5,2,17,0.50) 15%,
+                rgba(5,2,17,0.50) 85%,
+                rgba(5,2,17,0.85) 100%
+              ),
+              url('/features-bg.jpg')
+            `,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
         {/* How it works */}
         <section className="max-w-4xl mx-auto px-4 py-16 text-center">
           <h2 className="font-game text-xl text-white mb-12 glow-purple">HOW IT WORKS</h2>
@@ -174,7 +191,7 @@ export default function LandingPage() {
               { step: '03', title: 'LEVEL',  desc: 'Complete quests to earn XP & gold', icon: '⬆️' },
               { step: '04', title: 'BATTLE', desc: 'Defeat weekly boss battles for glory', icon: '👹' },
             ].map((item) => (
-              <div key={item.step} className="glass-card p-5 rounded-xl text-center">
+              <div key={item.step} className="p-5 rounded-xl text-center" style={{ backdropFilter: 'blur(8px)', background: 'rgba(10,5,30,0.65)', border: '1px solid rgba(168,85,247,0.3)' }}>
                 <div className="font-game text-xs text-purple-500 mb-2">{item.step}</div>
                 <div className="text-3xl mb-3" aria-hidden="true">{item.icon}</div>
                 <div className="font-game text-xs text-white mb-2">{item.title}</div>
@@ -186,7 +203,7 @@ export default function LandingPage() {
 
         {/* CTA */}
         <section className="text-center px-4 py-20">
-          <div className="glass-card pixel-border max-w-2xl mx-auto p-10 rounded-2xl">
+          <div className="pixel-border max-w-2xl mx-auto p-10 rounded-2xl" style={{ backdropFilter: 'blur(12px)', background: 'rgba(10,5,30,0.65)', border: '1px solid rgba(168,85,247,0.3)' }}>
             <p className="text-5xl mb-4" aria-hidden="true">⚔️</p>
             <h2 className="font-game text-xl text-white mb-4 glow-purple">
               YOUR LEGEND AWAITS
@@ -204,6 +221,8 @@ export default function LandingPage() {
             </Link>
           </div>
         </section>
+        </div>
+        {/* ── END FEATURES BG WRAPPER ────────────────────────── */}
 
         {/* Footer */}
         <footer className="border-t border-purple-900/30 bg-black/40 mt-12 pt-16 pb-8 relative z-10 backdrop-blur-sm">
