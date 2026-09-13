@@ -35,18 +35,6 @@ export function Sidebar() {
 
   return (
     <>
-      {/* GLOBAL DASHBOARD BACKGROUND */}
-      <div 
-        className="fixed inset-0 pointer-events-none" 
-        style={{ 
-          zIndex: -10,
-          backgroundImage: "linear-gradient(to bottom, rgba(5,2,17,0.7) 0%, rgba(5,2,17,0.9) 100%), url('/dashboard-bg.jpg')", 
-          backgroundSize: 'cover', 
-          backgroundPosition: 'center',
-          backgroundAttachment: 'fixed' 
-        }} 
-      />
-
       {/* DESKTOP SIDEBAR */}
       <aside
         className="hidden md:flex flex-col fixed inset-y-0 left-0 w-64 border-r border-purple-900/50 z-40"

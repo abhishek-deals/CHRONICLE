@@ -52,7 +52,8 @@ export default function AchievementsPage() {
   useEffect(() => {
     setCrtEnabled(localStorage.getItem('chronicle-crt') === 'true');
     loadAchievements();
-  }, [profile]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadAchievements = () => {
     setLoading(true);

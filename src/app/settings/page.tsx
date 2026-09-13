@@ -295,6 +295,34 @@ export default function SettingsPage() {
                           <option value="Classic">Classic</option>
                         </select>
                       </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">Color Accent</label>
+                        <select 
+                          value={localSettings.color_accent} 
+                          onChange={(e) => updateLocal('color_accent', e.target.value)}
+                          className="input-field text-sm w-full sm:w-64"
+                        >
+                          <option value="Purple">Purple (Default)</option>
+                          <option value="Blue">Blue</option>
+                          <option value="Green">Green</option>
+                          <option value="Gold">Gold</option>
+                          <option value="Red">Red</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">UI Density</label>
+                        <select 
+                          value={localSettings.ui_mode} 
+                          onChange={(e) => updateLocal('ui_mode', e.target.value)}
+                          className="input-field text-sm w-full sm:w-64"
+                        >
+                          <option value="Compact">Compact</option>
+                          <option value="Comfortable">Comfortable</option>
+                          <option value="Spacious">Spacious</option>
+                        </select>
+                      </div>
                     </div>
                   )}
 

@@ -68,7 +68,7 @@ export default function ChroniclePage() {
             ) : (
               <div className="relative border-l-2 border-purple-900/50 ml-4 sm:ml-8 space-y-8 pb-8">
                 {filteredEvents.map((event, i) => {
-                  const d = new Date(event.date);
+                  const d = new Date((event.created_at ?? event.date) || new Date().toISOString());
                   const isToday = new Date().toDateString() === d.toDateString();
                   const dateLabel = isToday ? 'TODAY' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toUpperCase();
                   

@@ -35,6 +35,7 @@ export default function DashboardPage() {
     const crtPref = localStorage.getItem('chronicle-crt') === 'true';
     setCrtEnabled(crtPref);
     loadDashboard();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadDashboard = useCallback(async () => {
@@ -69,7 +70,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [setProfile, setAttributes, setStreak, setTasks, setLoading]);
+  }, [setProfile, setAttributes, setStreak, setTasks, setLoading, router]);
 
   const handleQuestCompleted = useCallback((result: CompleteResult) => {
     if (result.level_up) {
@@ -96,7 +97,38 @@ export default function DashboardPage() {
       )}
       <Sidebar />
 
-      <main className="pb-20 md:pb-0 md:pl-64 min-h-screen relative">
+      {/* Doctor Doom Background */}
+      <div
+        className="fixed inset-0 z-0 pointer-events-none"
+        style={{
+          backgroundImage: 'url(/doom-bg.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center center',
+          backgroundRepeat: 'no-repeat',
+          backgroundAttachment: 'fixed',
+        }}
+      >
+        {/* Very light overlay — image stays fully visible, just enough tint for text readability */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'linear-gradient(180deg, rgba(5,2,17,0.35) 0%, rgba(5,2,17,0.25) 50%, rgba(5,2,17,0.40) 100%)',
+          }}
+        />
+        {/* Subtle green edge vignette matching Doom's aura */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(0,20,10,0.55) 100%)',
+          }}
+        />
+      </div>
+
+      <main className="pb-20 md:pb-0 md:pl-64 min-h-screen relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
           {fetchError && (

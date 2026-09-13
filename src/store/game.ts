@@ -63,7 +63,8 @@ export interface ChronicleEvent {
   type: 'level_up' | 'quest' | 'achievement' | 'campaign' | 'skill';
   title: string;
   description: string;
-  date: string;
+  date?: string;
+  created_at?: string;
 }
 
 export interface UserSettings {

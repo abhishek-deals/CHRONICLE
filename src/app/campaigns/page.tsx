@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sidebar } from '@/components/Sidebar';
 import { CRTOverlay } from '@/components/CRTOverlay';
-import { useGameStore, Campaign, Chapter } from '@/store/game';
+import { useGameStore } from '@/store/game';
 import { toast } from 'sonner';
 
 const CATEGORIES = ['Career', 'Study', 'Fitness', 'Personal', 'Creativity', 'Finance', 'Health', 'Social', 'Other'];
@@ -43,43 +43,43 @@ export default function CampaignsPage() {
 
     setIsGenerating(true);
     
-    // Deterministic fallback generator
-    setTimeout(() => {
-      const newCampaign: Campaign = {
-        id: `camp-${Date.now()}`,
-        title: goal.toUpperCase(),
-        description: `Your epic journey to achieve: ${goal}`,
-        category,
-        difficulty,
-        duration_days: duration,
-        status: 'active',
-        created_at: new Date().toISOString(),
-        chapters: [
-          { id: `c-${Date.now()}-1`, title: 'The Awakening', description: 'Laying the foundations.', completed: false, quests: [] },
-          { id: `c-${Date.now()}-2`, title: 'The First Trial', description: 'Testing your resolve.', completed: false, quests: [] },
-          { id: `c-${Date.now()}-3`, title: 'Mastery', description: 'Achieving true greatness.', completed: false, quests: [] },
-        ]
-      };
-      
-      // Send to API
-      fetch('/api/campaigns', {
+    try {
+      const res = await fetch('/api/campaigns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newCampaign)
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.campaign) {
-          setCampaigns([data.campaign, ...campaigns]);
-          toast.success('Campaign generated successfully!');
-        }
-      })
-      .finally(() => {
-        setIsGenerating(false);
+        body: JSON.stringify({
+          title: goal.trim().toUpperCase(),
+          description: `Your epic journey to achieve: ${goal.trim()}`,
+          category,
+          difficulty,
+          duration_days: duration,
+          status: 'active',
+          chapters: [
+            { title: 'The Awakening', description: 'Laying the foundations of your journey.' },
+            { title: 'The First Trial', description: 'Testing your resolve and commitment.' },
+            { title: 'Mastery', description: 'Achieving true greatness and completing your goal.' },
+          ]
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to create campaign');
+        return;
+      }
+
+      if (data.campaign) {
+        setCampaigns([data.campaign, ...campaigns]);
+        toast.success('Campaign created successfully! Your journey begins.', { icon: '⚔️' });
         setIsCreating(false);
         setGoal('');
-      });
-    }, 1500);
+      }
+    } catch (err) {
+      toast.error('Network error — please try again');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleCompleteChapter = async (campaignId: string, chapterId: string) => {

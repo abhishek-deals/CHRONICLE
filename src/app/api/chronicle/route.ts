@@ -13,9 +13,10 @@ export async function GET() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: events, error } = await (supabase as any)
       .from('chronicle_events')
-      .select('*')
+      .select('id, type, title, description, created_at')
       .eq('user_id', user.id)
-      .order('date', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(100);
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
