@@ -52,12 +52,13 @@ export default function CampaignsPage() {
       });
       
       const aiData = await aiRes.json();
-      const generatedChapters = aiData.chapters || [
-        { title: 'The Awakening', description: 'Laying the foundations of your journey.' },
-        { title: 'The First Trial', description: 'Testing your resolve and commitment.' },
-        { title: 'Mastery', description: 'Achieving true greatness and completing your goal.' },
-      ];
-
+      if (!aiRes.ok) {
+        toast.error(aiData.error || 'Failed to generate campaign. Is your API key valid?');
+        setIsGenerating(false);
+        return;
+      }
+      
+      const generatedChapters = aiData.chapters;
       // 2. Create the campaign
       const res = await fetch('/api/campaigns', {
         method: 'POST',

@@ -2,30 +2,7 @@ import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@/lib/supabase/server';
 
-// Hardcoded fallback — ensures this NEVER blocks the demo
-const FALLBACK_QUESTS = [
-  {
-    title: 'Read for 30 minutes',
-    category: 'Learning',
-    difficulty: 'Easy' as const,
-    attribute_tag: 'intellect',
-    reason: 'Reading sharpens your mind and builds your Intellect attribute.',
-  },
-  {
-    title: 'Do 20 push-ups',
-    category: 'Fitness',
-    difficulty: 'Easy' as const,
-    attribute_tag: 'strength',
-    reason: 'Physical training is the foundation of a legendary adventurer.',
-  },
-  {
-    title: 'Work on a creative project for 1 hour',
-    category: 'Creative',
-    difficulty: 'Medium' as const,
-    attribute_tag: 'creativity',
-    reason: 'Creative work is what separates heroes from mere mortals.',
-  },
-];
+
 
 export async function POST(request: Request) {
   try {
@@ -47,7 +24,7 @@ export async function POST(request: Request) {
       .single();
 
     if (attrError || !attrsRaw) {
-      return NextResponse.json({ quests: FALLBACK_QUESTS, fallback: true });
+      return NextResponse.json({ error: 'Failed to fetch user attributes.' }, { status: 500 });
     }
 
     const attrs = attrsRaw as { intellect: number; strength: number; discipline: number; creativity: number };
@@ -63,7 +40,7 @@ export async function POST(request: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
-      return NextResponse.json({ quests: FALLBACK_QUESTS, fallback: true });
+      return NextResponse.json({ error: 'AI API Key is missing or invalid. Please configure your GEMINI_API_KEY.' }, { status: 500 });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);

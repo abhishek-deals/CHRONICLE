@@ -157,16 +157,10 @@ export default function AIMentorPage() {
       setMessages([...newMessages, { role: 'assistant', content: finalProse }]);
     } catch (err) {
       console.error(err);
-      toast.error('Sage is having visions — showing backup quests');
-      setIsFallback(true);
-      const fallbackProse = "The cosmic winds obscure my sight. I offer these foundational tasks instead.";
-      setSageMessage(fallbackProse);
-      speakText(fallbackProse);
-      setQuests([
-        { title: 'Read for 30 minutes', category: 'Learning', difficulty: 'Easy', attribute_tag: 'intellect', reason: 'Keep your mind sharp.' },
-        { title: 'Do 20 push-ups', category: 'Fitness', difficulty: 'Easy', attribute_tag: 'strength', reason: 'Build physical strength.' },
-        { title: 'Work on a creative project', category: 'Creative', difficulty: 'Medium', attribute_tag: 'creativity', reason: 'Express your inner hero.' },
-      ]);
+      toast.error('Failed to communicate with Sage. Please check your Gemini API Key in .env.local');
+      setIsFallback(false);
+      setSageMessage('My connection to the cosmic threads is severed. Please configure a valid API key.');
+      setQuests([]);
     } finally {
       setIsLoading(false);
     }

@@ -2,11 +2,6 @@ import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@/lib/supabase/server';
 
-const FALLBACK_CHAPTERS = [
-  { title: 'The Awakening', description: 'Laying the foundations of your journey.' },
-  { title: 'The First Trial', description: 'Testing your resolve and commitment.' },
-  { title: 'Mastery', description: 'Achieving true greatness and completing your goal.' },
-];
 
 export async function POST(request: Request) {
   try {
@@ -20,12 +15,12 @@ export async function POST(request: Request) {
     const { goal, category, difficulty } = await request.json().catch(() => ({}));
 
     if (!goal) {
-      return NextResponse.json({ chapters: FALLBACK_CHAPTERS });
+      return NextResponse.json({ error: 'Missing goal for campaign generation.' }, { status: 400 });
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
-      return NextResponse.json({ chapters: FALLBACK_CHAPTERS, fallback: true });
+      return NextResponse.json({ error: 'AI API Key is missing or invalid. Please configure your GEMINI_API_KEY.' }, { status: 500 });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -63,23 +58,24 @@ Format:
 
       const result = await model.generateContent(`Generate the 3 chapters for my campaign: ${goal}`);
       const content = result.response.text();
-      let chapters = FALLBACK_CHAPTERS;
+      let chapters = [];
 
       try {
         const cleanedContent = content.replace(/```json/gi, '').replace(/```/g, '').trim();
         chapters = JSON.parse(cleanedContent);
         
         if (!Array.isArray(chapters) || chapters.length !== 3) {
-           chapters = FALLBACK_CHAPTERS;
+           return NextResponse.json({ error: 'AI returned invalid chapter format.' }, { status: 500 });
         }
       } catch (parseError) {
-        console.error('Failed to parse Claude JSON:', content);
+        console.error('Failed to parse Gemini JSON:', content);
+        return NextResponse.json({ error: 'Failed to parse AI response.' }, { status: 500 });
       }
 
       return NextResponse.json({ chapters });
     } catch (aiErr) {
       console.error('Gemini API error:', aiErr);
-      return NextResponse.json({ chapters: FALLBACK_CHAPTERS, fallback: true });
+      return NextResponse.json({ error: 'Failed to generate campaign with AI.' }, { status: 500 });
     }
   } catch (err) {
     console.error('POST /api/ai/generate-campaign error:', err);
