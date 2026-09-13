@@ -27,7 +27,7 @@ const FALLBACK_QUESTS = [
   },
 ];
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -35,6 +35,9 @@ export async function POST() {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const body = await request.json().catch(() => ({}));
+    const userMessages = body.messages || [];
 
     // Fetch user's current attributes from DB — NEVER trust client-sent values
     const { data: attrsRaw, error: attrError } = await supabase
@@ -65,7 +68,7 @@ export async function POST() {
 
     const client = new Anthropic({ apiKey });
 
-    const prompt = `You are the Sage, an ancient AI mentor in a life RPG called Chronicle. 
+    const systemPrompt = `You are the Sage, an ancient AI mentor in a life RPG called Chronicle.
 A player's attributes are:
 - Intellect: ${attrs.intellect as number} XP
 - Strength: ${attrs.strength as number} XP  
@@ -74,73 +77,66 @@ A player's attributes are:
 
 Their weakest attribute is: ${weakest}
 
-Suggest exactly 3 real-life quests (tasks) that would help them improve, especially the ${weakest} attribute.
+Speak in a warm, slightly archaic fantasy tone. Answer the user's query or provide a short 2-3 sentence introductory message (prose) addressing the adventurer and encouraging them.
+Then, if the user is asking for quests or if it's the start of the conversation, suggest exactly 3 real-life quests (tasks) that would help them improve, especially the ${weakest} attribute.
 
-Respond ONLY with valid JSON (no markdown fences, no commentary), in this exact format:
+Respond EXACTLY in this format with the exact delimiters:
+
+PROSE:
+[Your intro message or answer here]
+
+QUESTS:
 [
   {
-    "title": "Quest title (specific and actionable, max 60 chars)",
-    "category": "one of: General, Learning, Fitness, Creative, Career, Health, Social",
-    "difficulty": "one of: Easy, Medium, Hard, Epic",
-    "attribute_tag": "one of: intellect, strength, discipline, creativity",
-    "reason": "One sentence explaining how this quest helps the adventurer (max 100 chars)"
+    "title": "Quest title (max 60 chars)",
+    "category": "Learning",
+    "difficulty": "Easy",
+    "attribute_tag": "intellect",
+    "reason": "One sentence reason"
   }
-]`;
+]
+If you have no quests to suggest, return an empty array [] for QUESTS.`;
 
-    let questsData = FALLBACK_QUESTS;
-    let isFallback = false;
+    const apiMessages = [
+      ...userMessages.map((m: any) => ({ role: m.role, content: m.content })),
+    ];
+    // We add the system context to the final user message to enforce the format, or as the first message.
+    // Anthropic API supports system prompts at the top level. Let's use `system`.
 
     try {
-      const message = await client.messages.create({
-        model: 'claude-opus-4-5',
+      const stream = client.messages.stream({
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 800,
-        messages: [{ role: 'user', content: prompt }],
+        system: systemPrompt,
+        messages: apiMessages.length > 0 ? apiMessages : [{ role: 'user', content: 'Suggest 3 quests for me.' }],
       });
 
-      const content = message.content[0];
-      if (content.type === 'text') {
-        let raw = content.text.trim();
-        // Strip markdown code fences if present
-        raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+      const { readable, writable } = new TransformStream();
+      const writer = writable.getWriter();
+      
+      stream.on('text', (textDelta) => {
+        writer.write(new TextEncoder().encode(textDelta));
+      });
+      stream.on('end', () => {
+        writer.close();
+      });
+      stream.on('error', (err) => {
+        writer.abort(err);
+      });
 
-        const parsed = JSON.parse(raw);
+      return new NextResponse(readable, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-cache, no-transform',
+        },
+      });
 
-        // Validate shape
-        if (
-          Array.isArray(parsed) &&
-          parsed.length >= 1 &&
-          parsed.every(
-            (q) =>
-              typeof q.title === 'string' &&
-              typeof q.category === 'string' &&
-              ['Easy', 'Medium', 'Hard', 'Epic'].includes(q.difficulty) &&
-              ['intellect', 'strength', 'discipline', 'creativity'].includes(q.attribute_tag)
-          )
-        ) {
-          questsData = parsed.slice(0, 3).map((q) => ({
-            title: q.title.slice(0, 60),
-            category: q.category,
-            difficulty: q.difficulty,
-            attribute_tag: q.attribute_tag,
-            reason: q.reason?.slice(0, 100) || '',
-          }));
-        } else {
-          isFallback = true;
-        }
-      }
     } catch (aiErr) {
-      console.error('Claude API error (using fallback):', aiErr);
-      isFallback = true;
+      console.error('Claude API error:', aiErr);
+      return NextResponse.json({ error: 'Failed to generate quests' }, { status: 500 });
     }
-
-    return NextResponse.json({
-      quests: questsData,
-      weakest,
-      fallback: isFallback,
-    });
   } catch (err) {
     console.error('POST /api/ai/suggest-quests error:', err);
-    // Never crash — always return fallback
-    return NextResponse.json({ quests: FALLBACK_QUESTS, fallback: true });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

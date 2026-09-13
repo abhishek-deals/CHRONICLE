@@ -6,6 +6,12 @@ export interface Profile {
   level: number;
   total_xp: number;
   gold: number;
+  current_hp: number;
+  max_hp: number;
+  defense: number;
+  crit_chance: number;
+  combo_multiplier: number;
+  knockout_until: string | null;
 }
 
 export interface Attributes {
@@ -32,14 +38,54 @@ export interface Task {
   completed_at: string | null;
 }
 
-export interface Boss {
+export interface Chapter {
   id: string;
-  name: string;
-  max_hp: number;
-  current_hp: number;
-  week_start: string;
-  status: string;
-  bonus_gold_granted: boolean;
+  title: string;
+  description: string;
+  quests: Partial<Task>[];
+  completed: boolean;
+}
+
+export interface Campaign {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  difficulty: string;
+  duration_days: number;
+  chapters: Chapter[];
+  status: 'active' | 'completed';
+  created_at: string;
+}
+
+export interface ChronicleEvent {
+  id: string;
+  type: 'level_up' | 'quest' | 'achievement' | 'campaign' | 'skill';
+  title: string;
+  description: string;
+  date: string;
+}
+
+export interface UserSettings {
+  daily_goal: number;
+  difficulty_preference: string;
+  auto_quest_suggestions: boolean;
+  theme: string;
+  color_accent: string;
+  crt_effect: boolean;
+  ui_mode: string;
+  animations: boolean;
+  master_volume: number;
+  music: boolean;
+  sfx: boolean;
+  ui_sounds: boolean;
+  quest_reminders: boolean;
+  achievement_notifications: boolean;
+  level_up_notifications: boolean;
+  campaign_reminders: boolean;
+  reduce_motion: boolean;
+  high_contrast: boolean;
+  font_size: string;
 }
 
 export interface CompleteResult {
@@ -52,9 +98,12 @@ export interface CompleteResult {
   current_streak: number;
   longest_streak: number;
   attributes: Attributes;
-  boss_hp: number | null;
-  boss_defeated: boolean;
-  boss_id: string | null;
+  boss_damage?: number;
+  counter_damage?: number;
+  is_crit?: boolean;
+  combo_multiplier?: number;
+  current_hp?: number;
+  max_hp?: number;
 }
 
 interface GameState {
@@ -62,14 +111,20 @@ interface GameState {
   attributes: Attributes | null;
   streak: Streak | null;
   tasks: Task[];
-  boss: Boss | null;
+  campaigns: Campaign[];
+  chronicleEvents: ChronicleEvent[];
+  settings: UserSettings | null;
   isLoading: boolean;
+  lastCombatResult: CompleteResult | null;
 
   setProfile: (p: Profile) => void;
   setAttributes: (a: Attributes) => void;
   setStreak: (s: Streak) => void;
   setTasks: (t: Task[]) => void;
-  setBoss: (b: Boss | null) => void;
+  setCampaigns: (c: Campaign[]) => void;
+  setChronicleEvents: (e: ChronicleEvent[]) => void;
+  setSettings: (s: UserSettings) => void;
+  updateSettings: (s: Partial<UserSettings>) => void;
   setLoading: (v: boolean) => void;
 
   // Optimistic task complete
@@ -78,6 +133,7 @@ interface GameState {
 
   // Apply server authoritative state after complete
   applyCompleteResult: (taskId: string, result: CompleteResult) => void;
+  applyUndoResult: (taskId: string, result: any) => void;
 
   // Add new task optimistically
   addTask: (task: Task) => void;
@@ -91,14 +147,21 @@ export const useGameStore = create<GameState>((set) => ({
   attributes: null,
   streak: null,
   tasks: [],
-  boss: null,
+  campaigns: [],
+  chronicleEvents: [],
+  settings: null,
   isLoading: false,
+
+  lastCombatResult: null,
 
   setProfile: (p) => set({ profile: p }),
   setAttributes: (a) => set({ attributes: a }),
   setStreak: (s) => set({ streak: s }),
   setTasks: (t) => set({ tasks: t }),
-  setBoss: (b) => set({ boss: b }),
+  setCampaigns: (c) => set({ campaigns: c }),
+  setChronicleEvents: (e) => set({ chronicleEvents: e }),
+  setSettings: (s) => set({ settings: s }),
+  updateSettings: (s) => set((state) => ({ settings: state.settings ? { ...state.settings, ...s } : null })),
   setLoading: (v) => set({ isLoading: v }),
 
   optimisticComplete: (taskId) =>
@@ -115,8 +178,18 @@ export const useGameStore = create<GameState>((set) => ({
       ),
     })),
 
+  applyUndoResult: (taskId, result) =>
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === taskId ? { ...t, status: 'active', completed_at: undefined } : t
+      ),
+      profile: result.profile || state.profile,
+      attributes: result.attributes || state.attributes,
+    })),
+
   applyCompleteResult: (taskId, result) =>
     set((state) => ({
+      lastCombatResult: result,
       tasks: state.tasks.map((t) =>
         t.id === taskId
           ? { ...t, status: 'completed', completed_at: new Date().toISOString() }
@@ -128,6 +201,9 @@ export const useGameStore = create<GameState>((set) => ({
             level: result.level,
             total_xp: result.total_xp,
             gold: result.gold,
+            current_hp: result.current_hp ?? state.profile.current_hp,
+            max_hp: result.max_hp ?? state.profile.max_hp,
+            combo_multiplier: result.combo_multiplier ?? state.profile.combo_multiplier,
           }
         : null,
       attributes: result.attributes,
@@ -138,14 +214,6 @@ export const useGameStore = create<GameState>((set) => ({
             longest_streak: result.longest_streak,
           }
         : null,
-      boss:
-        state.boss && result.boss_id
-          ? {
-              ...state.boss,
-              current_hp: result.boss_hp ?? state.boss.current_hp,
-              status: result.boss_defeated ? 'defeated' : state.boss.status,
-            }
-          : state.boss,
     })),
 
   addTask: (task) =>
@@ -162,7 +230,9 @@ export const useGameStore = create<GameState>((set) => ({
       attributes: null,
       streak: null,
       tasks: [],
-      boss: null,
+      campaigns: [],
+      chronicleEvents: [],
+      settings: null,
       isLoading: false,
     }),
 }));

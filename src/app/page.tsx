@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -39,12 +40,25 @@ const stats = [
 export default function LandingPage() {
   return (
     <div
-      className="min-h-screen"
-      style={{ background: 'radial-gradient(ellipse at top, #1a0a2e 0%, #050211 70%)' }}
+      className="min-h-screen bg-[#050211] relative"
     >
+      {/* Hero Background Image with Fade */}
+      <div 
+        className="absolute inset-0 z-0 h-[800px] pointer-events-none"
+        style={{
+          backgroundImage: `
+            linear-gradient(to bottom, rgba(5, 2, 17, 0.3) 0%, rgba(5, 2, 17, 0.8) 60%, #050211 100%),
+            url('/hero-bg.jpg')
+          `,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center top',
+          backgroundRepeat: 'no-repeat'
+        }}
+      />
+
       {/* CRT grid */}
       <div
-        className="fixed inset-0 pointer-events-none opacity-[0.03]"
+        className="fixed inset-0 pointer-events-none opacity-[0.03] z-0"
         style={{
           backgroundImage: 'linear-gradient(rgba(168,85,247,1) 1px, transparent 1px), linear-gradient(90deg, rgba(168,85,247,1) 1px, transparent 1px)',
           backgroundSize: '40px 40px',
@@ -54,7 +68,7 @@ export default function LandingPage() {
 
       {/* Scanlines */}
       <div
-        className="fixed inset-0 pointer-events-none opacity-[0.04]"
+        className="fixed inset-0 pointer-events-none opacity-[0.04] z-0"
         style={{
           background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,1) 2px, rgba(0,0,0,1) 4px)',
         }}
@@ -63,7 +77,10 @@ export default function LandingPage() {
 
       {/* Navbar */}
       <nav className="relative z-10 flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
-        <span className="font-game text-purple-400 text-base glow-purple">⚔️ CHRONICLE</span>
+        <div className="flex items-center gap-3">
+          <Image src="/logo.jpg" alt="CHRONICLE Logo" width={32} height={32} className="rounded-full shadow-[0_0_10px_#a855f7]" priority />
+          <span className="font-game text-purple-400 text-base glow-purple">CHRONICLE</span>
+        </div>
         <div className="flex gap-3">
           <Link
             href="/login"
@@ -83,7 +100,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <main>
+      <main className="relative z-10">
         <section className="text-center px-4 py-20 sm:py-32 max-w-5xl mx-auto">
           {/* Badge */}
           <div className="inline-block mb-6 px-4 py-2 rounded-full bg-purple-900/30 border border-purple-700/50">
@@ -188,8 +205,49 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <footer className="text-center pb-8 text-slate-600 text-xs">
-          Built with ⚔️ for Chronicle Life RPG
+        {/* Footer */}
+        <footer className="border-t border-purple-900/30 bg-black/40 mt-12 pt-16 pb-8 relative z-10 backdrop-blur-sm">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+              <div className="col-span-1 md:col-span-2">
+                <div className="flex items-center gap-3 mb-4">
+                  <Image src="/logo.jpg" alt="CHRONICLE Logo" width={32} height={32} className="rounded-full shadow-[0_0_10px_#a855f7]" />
+                  <span className="font-game text-purple-400 text-base glow-purple">CHRONICLE</span>
+                </div>
+                <p className="text-slate-400 text-sm max-w-sm mb-6 leading-relaxed">
+                  Gamify your real life. Complete quests, earn XP, level up your character, and build your legend today.
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="font-game text-white text-sm mb-4">EXPLORE</h3>
+                <ul className="space-y-3">
+                  <li><Link href="/login" className="text-slate-400 hover:text-purple-400 text-sm transition-colors flex items-center gap-2"><span className="text-purple-500/50">▸</span> Sign In</Link></li>
+                  <li><Link href="/signup" className="text-slate-400 hover:text-purple-400 text-sm transition-colors flex items-center gap-2"><span className="text-purple-500/50">▸</span> Play Free</Link></li>
+                  <li><a href="#" className="text-slate-400 hover:text-purple-400 text-sm transition-colors flex items-center gap-2"><span className="text-purple-500/50">▸</span> Features</a></li>
+                  <li><a href="#" className="text-slate-400 hover:text-purple-400 text-sm transition-colors flex items-center gap-2"><span className="text-purple-500/50">▸</span> Hall of Fame</a></li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-game text-white text-sm mb-4">LEGAL</h3>
+                <ul className="space-y-3">
+                  <li><a href="#" className="text-slate-400 hover:text-purple-400 text-sm transition-colors flex items-center gap-2"><span className="text-purple-500/50">▸</span> Terms of Service</a></li>
+                  <li><a href="#" className="text-slate-400 hover:text-purple-400 text-sm transition-colors flex items-center gap-2"><span className="text-purple-500/50">▸</span> Privacy Policy</a></li>
+                  <li><a href="#" className="text-slate-400 hover:text-purple-400 text-sm transition-colors flex items-center gap-2"><span className="text-purple-500/50">▸</span> Contact Us</a></li>
+                </ul>
+              </div>
+            </div>
+            
+            <div className="border-t border-purple-900/30 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+              <p className="text-slate-500 text-xs">
+                © {new Date().getFullYear()} Chronicle Life RPG. All rights reserved.
+              </p>
+              <div className="flex items-center gap-4 text-slate-500 text-xs font-game">
+                BUILT WITH ⚔️ FOR ADVENTURERS
+              </div>
+            </div>
+          </div>
         </footer>
       </main>
     </div>

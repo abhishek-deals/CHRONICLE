@@ -43,17 +43,6 @@ export function xpProgress(totalXp: number): { current: number; needed: number; 
   return { current: remaining, needed: xpForLevel(level), level };
 }
 
-export const BOSS_NAMES = [
-  'Shadow Sloth',
-  'Procrastinax the Terrible',
-  'Lord Laziness',
-  'The Distraction Drake',
-  'Megaslack the Unmotivated',
-  'Baron Von Burnout',
-  'The Apathy Ogre',
-  'Chaos Goblin',
-];
-
 export const ATTRIBUTE_TAGS = ['intellect', 'strength', 'discipline', 'creativity'] as const;
 export type AttributeTag = typeof ATTRIBUTE_TAGS[number];
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { Navbar } from '@/components/Navbar';
+import { Sidebar } from '@/components/Sidebar';
 import { QuestCard } from '@/components/QuestCard';
 import { LevelUpModal } from '@/components/LevelUpModal';
 import { CRTOverlay } from '@/components/CRTOverlay';
@@ -56,6 +56,7 @@ export default function QuestsPage() {
     }
 
     setCreating(true);
+
     try {
       const res = await fetch('/api/tasks', {
         method: 'POST',
@@ -100,10 +101,10 @@ export default function QuestsPage() {
       {levelUpTarget && (
         <LevelUpModal level={levelUpTarget} onClose={() => setLevelUpTarget(null)} />
       )}
-      <Navbar />
+      <Sidebar />
 
       <main
-        className="pt-14 min-h-screen"
+        className="pb-20 md:pb-0 md:pl-64 min-h-screen"
         style={{ background: 'radial-gradient(ellipse at top, #1a0a2e 0%, #050211 60%)' }}
       >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

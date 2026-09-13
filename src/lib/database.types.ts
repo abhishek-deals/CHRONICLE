@@ -49,6 +49,11 @@ export type Database = {
           status: string
           user_id: string
           week_start: string
+          tier: number
+          atk: number
+          def: number
+          signature_move: string | null
+          sprite: string | null
         }
         Insert: {
           bonus_gold_granted?: boolean
@@ -60,6 +65,11 @@ export type Database = {
           status?: string
           user_id: string
           week_start: string
+          tier?: number
+          atk?: number
+          def?: number
+          signature_move?: string | null
+          sprite?: string | null
         }
         Update: {
           bonus_gold_granted?: boolean
@@ -71,6 +81,11 @@ export type Database = {
           status?: string
           user_id?: string
           week_start?: string
+          tier?: number
+          atk?: number
+          def?: number
+          signature_move?: string | null
+          sprite?: string | null
         }
       }
       profiles: {
@@ -81,6 +96,13 @@ export type Database = {
           level: number
           total_xp: number
           username: string
+          max_hp: number
+          current_hp: number
+          knockout_until: string | null
+          defense: number
+          crit_chance: number
+          combo_multiplier: number
+          last_combo_time: string | null
         }
         Insert: {
           created_at?: string | null
@@ -89,6 +111,13 @@ export type Database = {
           level?: number
           total_xp?: number
           username: string
+          max_hp?: number
+          current_hp?: number
+          knockout_until?: string | null
+          defense?: number
+          crit_chance?: number
+          combo_multiplier?: number
+          last_combo_time?: string | null
         }
         Update: {
           created_at?: string | null
@@ -97,6 +126,13 @@ export type Database = {
           level?: number
           total_xp?: number
           username?: string
+          max_hp?: number
+          current_hp?: number
+          knockout_until?: string | null
+          defense?: number
+          crit_chance?: number
+          combo_multiplier?: number
+          last_combo_time?: string | null
         }
       }
       streaks: {
@@ -165,6 +201,12 @@ export type Database = {
           source: string
           type: string
           user_id: string
+          idempotency_key: string | null
+          xp_gained: number | null
+          gold_gained: number | null
+          boss_damage: number | null
+          is_crit: boolean | null
+          combo_multiplier: number | null
         }
         Insert: {
           amount: number
@@ -173,6 +215,12 @@ export type Database = {
           source: string
           type: string
           user_id: string
+          idempotency_key?: string | null
+          xp_gained?: number | null
+          gold_gained?: number | null
+          boss_damage?: number | null
+          is_crit?: boolean | null
+          combo_multiplier?: number | null
         }
         Update: {
           amount?: number
@@ -181,6 +229,12 @@ export type Database = {
           source?: string
           type?: string
           user_id?: string
+          idempotency_key?: string | null
+          xp_gained?: number | null
+          gold_gained?: number | null
+          boss_damage?: number | null
+          is_crit?: boolean | null
+          combo_multiplier?: number | null
         }
       }
     }
@@ -189,7 +243,7 @@ export type Database = {
     }
     Functions: {
       complete_quest: {
-        Args: { p_task_id: string; p_user_id: string }
+        Args: { p_task_id: string; p_user_id: string; p_idempotency_key?: string }
         Returns: Json
       }
       get_or_create_boss: { Args: { p_user_id: string }; Returns: Json }

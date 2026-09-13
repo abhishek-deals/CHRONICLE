@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Navbar } from '@/components/Navbar';
+import { Sidebar } from '@/components/Sidebar';
 import { XpBar } from '@/components/XpBar';
-import { BossWidget } from '@/components/BossWidget';
 import { QuestCard } from '@/components/QuestCard';
 import { LevelUpModal } from '@/components/LevelUpModal';
 import { CRTOverlay } from '@/components/CRTOverlay';
@@ -20,11 +20,12 @@ const ATTR_CONFIG = [
 
 export default function DashboardPage() {
   const {
-    profile, attributes, streak, tasks, boss,
-    setProfile, setAttributes, setStreak, setTasks, setBoss,
+    profile, attributes, streak, tasks,
+    setProfile, setAttributes, setStreak, setTasks,
     isLoading, setLoading,
   } = useGameStore();
 
+  const router = useRouter();
   const [levelUpTarget, setLevelUpTarget] = useState<number | null>(null);
   const [crtEnabled, setCrtEnabled] = useState(false);
   const [fetchError, setFetchError] = useState('');
@@ -41,10 +42,9 @@ export default function DashboardPage() {
     setFetchError('');
 
     try {
-      const [profileRes, tasksRes, bossRes] = await Promise.all([
+      const [profileRes, tasksRes] = await Promise.all([
         fetch('/api/profile'),
         fetch('/api/tasks'),
-        fetch('/api/boss'),
       ]);
 
       if (profileRes.ok) {
@@ -52,33 +52,30 @@ export default function DashboardPage() {
         setProfile(p);
         setAttributes(a);
         setStreak(s);
+      } else {
+        if (profileRes.status === 401) {
+          // Not authenticated — redirect to login
+          router.replace('/login');
+          return;
+        }
       }
 
       if (tasksRes.ok) {
         const { tasks: t } = await tasksRes.json();
         setTasks(t);
       }
-
-      if (bossRes.ok) {
-        const { boss: b } = await bossRes.json();
-        setBoss(b);
-      }
     } catch (err) {
       setFetchError('Failed to load your adventure data. Please refresh.');
     } finally {
       setLoading(false);
     }
-  }, [setProfile, setAttributes, setStreak, setTasks, setBoss, setLoading]);
+  }, [setProfile, setAttributes, setStreak, setTasks, setLoading]);
 
   const handleQuestCompleted = useCallback((result: CompleteResult) => {
     if (result.level_up) {
       setLevelUpTarget(result.level);
     }
-    // Refresh boss data if boss was defeated
-    if (result.boss_defeated) {
-      fetch('/api/boss').then((r) => r.json()).then(({ boss: b }) => setBoss(b));
-    }
-  }, [setBoss]);
+  }, []);
 
   const activeTasks = tasks.filter((t) => t.status === 'active');
   const completedTasks = tasks.filter((t) => t.status === 'completed');
@@ -97,17 +94,17 @@ export default function DashboardPage() {
           onClose={() => setLevelUpTarget(null)}
         />
       )}
-      <Navbar />
+      <Sidebar />
 
-      <main className="pt-14 min-h-screen" style={{ background: 'radial-gradient(ellipse at top, #1a0a2e 0%, #050211 60%)' }}>
+      <main className="pb-20 md:pb-0 md:pl-64 min-h-screen" style={{ background: 'radial-gradient(ellipse at top, #1a0a2e 0%, #050211 60%)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
           {fetchError && (
-            <div className="mb-6 p-4 rounded-lg bg-red-900/30 border border-red-700/50 text-red-300 text-sm" role="alert">
-              {fetchError}
+            <div className="mb-6 p-4 rounded-lg bg-red-900/30 border border-red-700/50 text-red-300 text-sm flex items-center gap-3" role="alert">
+              <span>⚠️ {fetchError}</span>
               <button
                 onClick={loadDashboard}
-                className="ml-3 underline hover:text-red-200"
+                className="ml-auto underline hover:text-red-200 text-xs"
                 aria-label="Retry loading dashboard"
               >
                 Retry
@@ -202,8 +199,6 @@ export default function DashboardPage() {
                 ) : null}
               </div>
 
-              {/* Boss Widget */}
-              <BossWidget boss={boss} isLoading={isLoading} />
 
               {/* CRT Toggle */}
               <div className="glass-card p-4 rounded-lg flex items-center justify-between">

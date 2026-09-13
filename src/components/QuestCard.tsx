@@ -53,8 +53,12 @@ export function QuestCard({ task, onCompleted, onDeleted }: Props) {
       }
 
       try {
+        const activeBuff = localStorage.getItem('oracle_active_buff');
+        
         const res = await fetch(`/api/tasks/${task.id}/complete`, {
           method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ active_buff: activeBuff })
         });
 
         if (!res.ok) {
@@ -67,15 +71,71 @@ export function QuestCard({ task, onCompleted, onDeleted }: Props) {
         const data = await res.json();
         applyCompleteResult(task.id, data.result);
 
+        const handleUndo = async () => {
+          rollbackComplete(task.id); // optimistic rollback
+          try {
+            const undoRes = await fetch(`/api/tasks/${task.id}/undo`, { method: 'POST' });
+            if (undoRes.ok) {
+              const undoData = await undoRes.json();
+              useGameStore.getState().applyUndoResult(task.id, undoData.result || {});
+              toast.info(`Undid quest: ${task.title}`);
+            } else {
+              toast.error('Failed to undo quest');
+            }
+          } catch {
+            toast.error('Network error during undo');
+          }
+        };
+
         toast.success(`+${data.result.xp_gained} XP • +${data.result.gold_gained} Gold!`, {
           icon: '⚔️',
+          action: {
+            label: 'UNDO',
+            onClick: handleUndo
+          },
+          duration: 6000
         });
 
-        if (data.result.level_up) {
-          onCompleted?.(data.result);
-        } else {
-          onCompleted?.(data.result);
+        if (data.result.boss_damage) {
+          toast.success(`⚔️ Dealt ${data.result.boss_damage} DMG to the Boss!`);
         }
+        if (data.result.boss_defeated) {
+          toast.success('🏆 BOSS DEFEATED! Massive rewards earned!');
+        }
+
+        // ── Fire chronicle entry (background, non-blocking) ──────────
+        const xpText = `+${data.result.xp_gained} XP • +${data.result.gold_gained} Gold earned`;
+        fetch('/api/chronicle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'quest',
+            title: `Quest Complete: ${task.title}`,
+            description: `[${task.difficulty}] ${task.category} — ${xpText}`,
+          }),
+        }).catch(() => {}); // silent — never block UI
+
+        // ── If level up, log that too ────────────────────────────────
+        if (data.result.level_up) {
+          fetch('/api/chronicle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'level_up',
+              title: `Level Up! Now Level ${data.result.level}`,
+              description: `You have reached Level ${data.result.level}. Your legend grows stronger!`,
+            }),
+          }).catch(() => {});
+        }
+
+        // ── Check & unlock achievements in background ────────────────
+        fetch('/api/achievements', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ result: data.result, task }),
+        }).catch(() => {});
+
+        onCompleted?.(data.result);
       } catch {
         rollbackComplete(task.id);
         toast.error('Network error — please try again');
@@ -83,7 +143,7 @@ export function QuestCard({ task, onCompleted, onDeleted }: Props) {
         setCompleting(false);
       }
     },
-    [completing, isCompleted, task.id, optimisticComplete, rollbackComplete, applyCompleteResult, onCompleted]
+    [completing, isCompleted, task, optimisticComplete, rollbackComplete, applyCompleteResult, onCompleted]
   );
 
   const handleDelete = useCallback(async () => {
