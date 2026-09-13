@@ -20,7 +20,7 @@ export async function GET() {
       .select('id')
       .eq('user_id', user.id)
       .eq('type', 'decision')
-      .gte('created_at', startOfDay.toISOString())
+      .gte('date', startOfDay.toISOString())
       .limit(1);
 
     if (existingDecision && existingDecision.length > 0) {

@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import { CRTOverlay } from '@/components/CRTOverlay';
 
@@ -25,6 +26,7 @@ export default function WorldMapPage() {
   const [selectedRegion, setSelectedRegion] = useState<Region | null>(null);
   
   const mapRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   const fetchRegions = async () => {
     try {
@@ -110,7 +112,10 @@ export default function WorldMapPage() {
             </p>
 
             {selectedRegion.unlocked && (
-              <button className="w-full py-3 btn-primary text-xs font-game">
+              <button 
+                onClick={() => router.push(`/quests`)}
+                className="w-full py-3 btn-primary text-xs font-game"
+              >
                 ENTER REGION
               </button>
             )}
